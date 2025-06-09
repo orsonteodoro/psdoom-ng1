@@ -1,62 +1,75 @@
 #!/bin/bash
 
 # Checks required to prevent code execution / privilege escalation
-local settings_path=""
+PSDOOM_NG_SETTINGS_PATH=""
 if [[ -f "/home/${USER}/.psdoom-ng/psdoom-ng.conf" ]]; then
-	settings_path="/home/${USER}/.psdoom-ng/psdoom-ng.conf"
+	PSDOOM_NG_SETTINGS_PATH="/home/${USER}/.psdoom-ng/psdoom-ng.conf"
 elif [[ -f "/etc/psdoom-ng.conf" ]]; then
-	settings_path="/etc/psdoom-ng.conf"
+	PSDOOM_NG_SETTINGS_PATH="/etc/psdoom-ng.conf"
 fi
 
-if [[ -n "${settings_path}" ]]; then
+if [[ -n "${PSDOOM_NG_SETTINGS_PATH}" ]]; then
 	if [[ -n "${DISPLAY}" ]] && which zenity ; then
-		zenity --question --title="psdoom-ng security settings check" --text=""$(cat "${settings_path}")"\n\nAre these settings safe?"
+		zenity --question --title="psdoom-ng security settings check" --text=""$(cat "${PSDOOM_NG_SETTINGS_PATH}")"\n\nAre these settings safe?"
 		if (( ${?} == 0 )) ; then
-			source "${settings_path}"
+			source "${PSDOOM_NG_SETTINGS_PATH}"
 		fi
 	elif [[ -n "${$WAYLAND_DISPLAY}" ]] ; then
-		GDK_BACKEND="wayland" zenity --question --title="psdoom-ng security settings check" --text=""$(cat "${settings_path}")"\n\nAre these settings safe?"
+		GDK_BACKEND="wayland" zenity --question --title="psdoom-ng security settings check" --text=""$(cat "${PSDOOM_NG_SETTINGS_PATH}")"\n\nAre these settings safe?"
 		if (( ${?} == 0 )) ; then
-			source "${settings_path}"
+			source "${PSDOOM_NG_SETTINGS_PATH}"
 		fi
 	else
 		echo
 		echo "psdoom-ng security settings check"
 		echo
-		echo "Contents of ${settings_path}:"
+		echo "Contents of ${PSDOOM_NG_SETTINGS_PATH}:"
 		echo
 		cat "${filepath}"
 		echo
 		echo "Are these settings safe? (y/N)"
 		read -r run_script
 		if [[ "${run_script}" =~ ("Y"|"y"|"1") ]] ; then
-			source "${settings_path}"
+			source "${PSDOOM_NG_SETTINGS_PATH}"
 		fi
 	fi
 fi
 
-if [[ ! -v PSDOOMPSCMD || -z "${PSDOOMPSCMD}"  ]] ; then
-	unset PSDOOMPSCMD
+if [[ ! -v PSDOOM_NG_PS_CMD || -z "${PSDOOM_NG_PS_CMD}"  ]] ; then
+	unset PSDOOM_NG_PS_CMD
 else
-	export PSDOOMPSCMD="${PSDOOMPSCMD}"
+	export PSDOOM_NG_PS_CMD="${PSDOOM_NG_PS_CMD}"
 fi
-if [[ ! -v PSDOOMRENICECMD || -z "${PSDOOMRENICECMD}" ]] ; then
-	unset PSDOOMRENICECMD
+if [[ ! -v PSDOOM_NG_RENICE_CMD || -z "${PSDOOM_NG_RENICE_CMD}" ]] ; then
+	unset PSDOOM_NG_RENICE_CMD
 else
-	export PSDOOMRENICECMD="${PSDOOMRENICECMD}"
+	export PSDOOM_NG_RENICE_CMD="${PSDOOM_NG_RENICE_CMD}"
 fi
-if [[ ! -v PSDOOMKILLCMD || -z "${PSDOOMKILLCMD}" ]] ; then
-	unset PSDOOMKILLCMD
+if [[ ! -v PSDOOM_NG_KILL_CMD || -z "${PSDOOM_NG_KILL_CMD}" ]] ; then
+	unset PSDOOM_NG_KILL_CMD
 else
-	export PSDOOMKILLCMD="${PSDOOMKILLCMD}"
+	export PSDOOM_NG_KILL_CMD="${PSDOOM_NG_KILL_CMD}"
 fi
 if [[ ! -v DOOMWADPATH || -z "${DOOMWADPATH}" ]] ; then
 	unset DOOMWADPATH
 else
 	export DOOMWADPATH="${DOOMWADPATH}"
 fi
-echo "PSDOOMPSCMD=${PSDOOMPSCMD}"
-echo "PSDOOMRENICECMD=${PSDOOMRENICECMD}"
-echo "PSDOOMKILLCMD=${PSDOOMKILLCMD}"
+
+if [[ -n "${PSDOOMPSCMD}" ]] ; then
+	echo "WARN:  The PSDOOMPSCMD has been renamed to PSDOOM_NG_PS_CMD"
+fi
+
+if [[ -n "${PSDOOMRENICECMD}" ]] ; then
+	echo "WARN:  The PSDOOMPSCMD has been renamed to PSDOOM_NG_RENICE_CMD"
+fi
+
+if [[ -n "${PSDOOMKILLCMD}" ]] ; then
+	echo "WARN:  The PSDOOMKILLCMD has been renamed to PSDOOM_NG_KILL_CMD"
+fi
+
+echo "PSDOOM_NG_PS_CMD=${PSDOOM_NG_PS_CMD}"
+echo "PSDOOM_NG_RENICE_CMD=${PSDOOM_NG_RENICE_CMD}"
+echo "PSDOOM_NG_KILL_CMD=${PSDOOM_NG_KILL_CMD}"
 echo "DOOMWADPATH=${DOOMWADPATH}"
 /usr/bin/psdoom-ng ${DEFAULT_ARGS} "$@"
