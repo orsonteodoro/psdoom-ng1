@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=psdoom-ng
+Exec=psd
+Icon=psdoom-ng
+Type=Application
+Comment=psdoom-ng, personified process killer and monitor
+Categories=System;Monitor;
