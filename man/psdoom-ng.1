@@ -182,7 +182,7 @@ DOOMWADPATH
 A list of paths to search for wads seperated by a colon.
 .RE
 .PP
-PSDOOMPSCMD
+PSDOOM_NG_PS_CMD
 .RS
 Replaces 'ps' with an alternative command to produce the process list allowing a person to provide for example a list generated for external computers on cloud services or a whitelist for specific processes.  The called command will output the single space sperated output one pid per line in this format:
 .PP
@@ -199,12 +199,12 @@ keymon 32 core15 1
 keymon 32 core15 1
 .RE
 .PP
-PSDOOMRENICECMD
+PSDOOM_NG_RENICE_CMD
 .RS
 Replaces the default if not defined 'nice +5' with a command to renice a pid.  You could for example renice by 1 or -1 instead.  The argument is pid and will be appended to the end of the command with a space.
 .RE
 .PP
-PSDOOMKILLCMD
+PSDOOM_NG_KILL_CMD
 .RS
 Replaces the default if not defined 'kill -9' with the command assigned to it.  The argument is a pid and will be appended to the end of the command with a space.
 .RE
@@ -243,7 +243,7 @@ DOOMWADPATH="/usr/share/games/doom-data:/usr/share/psdoom-ng" psdoom-ng -psuser 
 This will show process belonging to orson and the psDooM custom level for Doom 2.
 .RE
 .PP
-PSDOOMPSCMD="/usr/share/local/bin/psdoom-ng-cf-ctl ps" PSDOOMRENICECMD="true" PSDOOMKILLCMD="/usr/share/local/bin/psdoom-ng-cf-ctl kill" DOOMWADPATH="/usr/share/games/doom-data:/usr/share/psdoom-ng" psdoom-ng
+PSDOOM_NG_PS_CMD="/usr/share/local/bin/psdoom-ng-cf-ctl ps" PSDOOM_NG_RENICE_CMD="true" PSDOOM_NG_KILL_CMD="/usr/share/local/bin/psdoom-ng-cf-ctl kill" DOOMWADPATH="/usr/share/games/doom-data:/usr/share/psdoom-ng" psdoom-ng
 .RS
 For this use case, psdoom-ng will delete an app in a remote cloud service with a user provided script psdoom-ng-cf-ctl.  This will show specific instances of that application on that machine.  The nice command will be ignored in this case.  The kill command deletes the application on that remote machine.
 .RE

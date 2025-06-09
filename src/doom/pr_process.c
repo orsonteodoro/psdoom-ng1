@@ -117,7 +117,7 @@ void pr_check(void) {
 
 // Now that we know we should run 'ps', do it!
 
-  if ((custompscmd=getenv("PSDOOMPSCMD")) != NULL) { 
+  if ((custompscmd=getenv("PSDOOM_NG_PS_CMD")) != NULL) { 
   /* 
     The external command must return one line per process with:
 
@@ -870,7 +870,7 @@ void pr_kill(int pid) {
   if ( nopsact ){
      return;
   }
-  if ((cmd = getenv("PSDOOMKILLCMD")) == NULL) {
+  if ((cmd = getenv("PSDOOM_NG_KILL_CMD")) == NULL) {
     cmd = "kill -9";
   }
   sprintf(buf, "%s %d", cmd, pid);
@@ -886,7 +886,7 @@ void pr_renice(int pid) {
   if ( nopsact ){
      return;
   }
-  if ((cmd = getenv("PSDOOMRENICECMD")) == NULL) {
+  if ((cmd = getenv("PSDOOM_NG_RENICE_CMD")) == NULL) {
     cmd = "renice +5 -9";
   }
   sprintf(buf, "%s %d", cmd, pid);

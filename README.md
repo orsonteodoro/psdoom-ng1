@@ -46,7 +46,7 @@ services (AWS, heroku, vmware, etc).
 
 For that, you only need to override these environment variables:
 
- * PSDOOMPSCMD List the processes. The command must print one space separated 
+ * PSDOOM_NG_PS_CMD List the processes. The command must print one space separated 
    line per process with the format: `<user> <pid> <processname> <is_daemon=[1|0]>`
 ```bash
     keymon 29 web4 1
@@ -56,18 +56,18 @@ For that, you only need to override these environment variables:
     keymon 20 core2 1
 ```
 
- * PSDOOMRENICECMD Command to renice the process. Will get the pid as argument
+ * PSDOOM_NG_RENICE_CMD Command to renice the process. Will get the pid as argument
 
- * PSDOOMKILLCMD Command to kill the process. Will get the pid as argument
+ * PSDOOM_NG_KILL_CMD Command to kill the process. Will get the pid as argument
 
 
 For example, in contrib you can find a script that interacts with cloudfoundry:
 
 ```bash
     cd trunk
-    PSDOOMPSCMD="./contrib/psdoom-cf-ctl ps" \
-    PSDOOMRENICECMD="true" \
-    PSDOOMKILLCMD="./contrib/psdoom-cf-ctl kill" \
+    PSDOOM_NG_PS_CMD="./contrib/psdoom-cf-ctl ps" \
+    PSDOOM_NG_RENICE_CMD="true" \
+    PSDOOM_NG_KILL_CMD="./contrib/psdoom-cf-ctl kill" \
     ./src/psdoom
 ```
 

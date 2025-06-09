@@ -2,13 +2,13 @@
 #
 # Command line tool to use psdoom-ng (patched to support external commands)
 # with cloudfoundry. This is just a small proof of concept, it will show
-# all the apps in the current space as processes. 
+# all the apps in the current space as processes.
 #
 # Kill the process in psdoom means delete the app.
 #
-#   PSDOOMPSCMD="/usr/local/bin/psdoom-cf-ctl ps" \
-#   PSDOOMRENICECMD="true" \
-#   PSDOOMKILLCMD="/usr/local/bin/psdoom-cf-ctl kill" \
+#   PSDOOM_NG_PS_CMD="/usr/local/bin/psdoom-cf-ctl ps" \
+#   PSDOOM_NG_RENICE_CMD="true" \
+#   PSDOOM_NG_KILL_CMD="/usr/local/bin/psdoom-cf-ctl kill" \
 #   /usr/bin/psdoom-ng
 #
 
@@ -30,7 +30,7 @@ get_app_for_pid() {
 if [ "$1" == "ps" ]; then
         # We use always a cached output, because it is just easier
 	[ ! -f $CF_APPS_OUTPUT ] && touch $CF_APPS_OUTPUT
-	
+
 	# The running ones are deamons, the stopped ones, are normal guys
 	for app in $(cat $CF_APPS_OUTPUT | grep -e 'started' | cut -f 1 -d ' '); do
 		pid=$(get_pid_for_app $app)
@@ -47,11 +47,11 @@ if [ "$1" == "ps" ]; then
 elif [ "$1" == "kill" ]; then
 	app=$(get_app_for_pid $2)
 	get_app_for_pid $2
-	if [ ! -z "$app" ]; then 
+	if [ ! -z "$app" ]; then
 		# delete it from CF
 		cf delete $app -f 1>&2
 		# And from the cache
-		sed -i ""  "/^$app /d" $CF_APPS_OUTPUT 
+		sed -i ""  "/^$app /d" $CF_APPS_OUTPUT
 	fi
 fi
-echo $0 $@ 1>&2 
+echo $0 $@ 1>&2
