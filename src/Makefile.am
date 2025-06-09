@@ -257,11 +257,11 @@ metainfo_DATA =                             \
         @PACKAGE_RDNS@.Heretic.metainfo.xml \
         @PACKAGE_RDNS@.Hexen.metainfo.xml   \
         @PACKAGE_RDNS@.Strife.metainfo.xml  \
-        @PACKAGE_RDNS@.psdoom-ng.appdata.xml
+        psdoom-ng.appdata.xml
 else
 metainfodir = $(prefix)/share/metainfo
 metainfo_DATA =                             \
-        @PACKAGE_RDNS@.psdoom-ng.appdata.xml
+        psdoom-ng.appdata.xml
 noinst_DATA =                             \
         @PACKAGE_RDNS@.Doom.metainfo.xml    \
         @PACKAGE_RDNS@.Heretic.metainfo.xml \
@@ -281,7 +281,7 @@ endif
 @PACKAGE_RDNS@.Strife.metainfo.xml : Strife.metainfo.xml
 	cp Strife.metainfo.xml $@
 
-@PACKAGE_RDNS@.psdoom-ng.metainfo.xml : psdoom-ng.metainfo.xml
+psdoom-ng.metainfo.xml : psdoom-ng.metainfo.xml
 	cp psdoom-ng.metainfo.xml $@
 
 appdir = $(prefix)/share/applications
@@ -291,10 +291,10 @@ app_DATA =                                \
            @PACKAGE_RDNS@.Heretic.desktop \
            @PACKAGE_RDNS@.Hexen.desktop   \
            @PACKAGE_RDNS@.Strife.desktop  \
-           @PACKAGE_RDNS@.psdoom-ng.desktop
+           psdoom-ng.desktop
 else
 app_DATA =                                \
-           @PACKAGE_RDNS@.psdoom-ng.desktop
+           psdoom-ng.desktop
 noinst_DATA =                             \
            @PACKAGE_RDNS@.Doom.desktop    \
            @PACKAGE_RDNS@.Heretic.desktop \
@@ -314,7 +314,7 @@ endif
 @PACKAGE_RDNS@.Strife.desktop : Strife.desktop
 	cp Strife.desktop $@
 
-@PACKAGE_RDNS@.psdoom-ng.desktop : psdoom-ng.desktop
+psdoom-ng.desktop : psdoom-ng.desktop
 	cp psdoom-ng.desktop $@
 
 if ENABLE_ALL_GAMES
