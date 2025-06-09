@@ -19,8 +19,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "doomfeatures.h"
-
 #include "d_event.h"
 #include "d_loop.h"
 #include "d_ticcmd.h"
@@ -183,14 +181,11 @@ static boolean BuildNewTic(void)
     memset(&cmd, 0, sizeof(ticcmd_t));
     loop_interface->BuildTiccmd(&cmd, maketic);
 
-#ifdef FEATURE_MULTIPLAYER
-
     if (net_client_connected)
     {
         NET_CL_SendTiccmd(&cmd, maketic);
     }
 
-#endif
     ticdata[maketic % BACKUPTICS].cmds[localplayer] = cmd;
     ticdata[maketic % BACKUPTICS].ingame[localplayer] = true;
 
@@ -218,14 +213,10 @@ void NetUpdate (void)
     if (singletics)
         return;
 
-#ifdef FEATURE_MULTIPLAYER
-
     // Run network subsystems
 
     NET_CL_Run();
     NET_SV_Run();
-
-#endif
 
     // check time
     nowtime = GetAdjustedTime() / ticdup;
@@ -355,21 +346,10 @@ void D_StartNetGame(net_gamesettings_t *settings,
     //!
     // @category net
     //
-    // Use new network client sync code rather than the classic
-    // sync code. This is currently disabled by default because it
-    // has some bugs.
+    // Use original network client sync code rather than the improved
+    // sync code.
     //
-    if (M_CheckParm("-newsync") > 0)
-        settings->new_sync = 1;
-    else
-        settings->new_sync = 0;
-
-    // TODO: New sync code is not enabled by default because it's
-    // currently broken. 
-    //if (M_CheckParm("-oldsync") > 0)
-    //    settings->new_sync = 0;
-    //else
-    //    settings->new_sync = 1;
+    settings->new_sync = !M_ParmExists("-oldsync");
 
     //!
     // @category net
@@ -433,6 +413,11 @@ void D_StartNetGame(net_gamesettings_t *settings,
     ticdup = settings->ticdup;
     new_sync = settings->new_sync;
 
+    if (ticdup < 1)
+    {
+        I_Error("D_StartNetGame: invalid ticdup value (%d)", ticdup);
+    }
+
     // TODO: Message disabled until we fix new_sync.
     //if (!new_sync)
     //{
@@ -452,8 +437,6 @@ boolean D_InitNetGame(net_connect_data_t *connect_data)
 
     player_class = connect_data->player_class;
 
-#ifdef FEATURE_MULTIPLAYER
-
     //!
     // @category net
     //
@@ -470,6 +453,7 @@ boolean D_InitNetGame(net_connect_data_t *connect_data)
 
         net_loop_client_module.InitClient();
         addr = net_loop_client_module.ResolveAddress(NULL);
+        NET_ReferenceAddress(addr);
     }
     else
     {
@@ -506,6 +490,7 @@ boolean D_InitNetGame(net_connect_data_t *connect_data)
         {
             net_sdl_module.InitClient();
             addr = net_sdl_module.ResolveAddress(myargv[i+1]);
+            NET_ReferenceAddress(addr);
 
             if (addr == NULL)
             {
@@ -523,11 +508,12 @@ boolean D_InitNetGame(net_connect_data_t *connect_data)
 
         if (!NET_CL_Connect(addr, connect_data))
         {
-            I_Error("D_InitNetGame: Failed to connect to %s\n",
-                    NET_AddrToString(addr));
+            I_Error("D_InitNetGame: Failed to connect to %s:\n%s\n",
+                    NET_AddrToString(addr), net_client_reject_reason);
         }
 
         printf("D_InitNetGame: Connected to %s\n", NET_AddrToString(addr));
+        NET_ReleaseAddress(addr);
 
         // Wait for launch message received from server.
 
@@ -535,7 +521,6 @@ boolean D_InitNetGame(net_connect_data_t *connect_data)
 
         result = true;
     }
-#endif
 
     return result;
 }
@@ -548,10 +533,8 @@ boolean D_InitNetGame(net_connect_data_t *connect_data)
 //
 void D_QuitNetGame (void)
 {
-#ifdef FEATURE_MULTIPLAYER
     NET_SV_Shutdown();
     NET_CL_Disconnect();
-#endif
 }
 
 static int GetLowTic(void)
@@ -560,7 +543,6 @@ static int GetLowTic(void)
 
     lowtic = maketic;
 
-#ifdef FEATURE_MULTIPLAYER
     if (net_client_connected)
     {
         if (drone || recvtic < lowtic)
@@ -568,7 +550,6 @@ static int GetLowTic(void)
             lowtic = recvtic;
         }
     }
-#endif
 
     return lowtic;
 }
@@ -839,7 +820,7 @@ static boolean StrictDemos(void)
 // this extension (no extensions are allowed if -strictdemos is given
 // on the command line). A warning is shown on the console using the
 // provided string describing the non-vanilla expansion.
-boolean D_NonVanillaRecord(boolean conditional, char *feature)
+boolean D_NonVanillaRecord(boolean conditional, const char *feature)
 {
     if (!conditional || StrictDemos())
     {
@@ -877,7 +858,7 @@ static boolean IsDemoFile(int lumpnum)
 //    demo that comes from a .lmp file, not a .wad file.
 //  - Before proceeding, a warning is shown to the user on the console.
 boolean D_NonVanillaPlayback(boolean conditional, int lumpnum,
-                             char *feature)
+                             const char *feature)
 {
     if (!conditional || StrictDemos())
     {

@@ -25,14 +25,14 @@
 #include "info.h"
 #include "m_argv.h"
 
-char *deh_signatures[] =
+const char *deh_signatures[] =
 {
     "Patch File for HHE v1.0",
     "Patch File for HHE v1.1",
     NULL
 };
 
-static char *hhe_versions[] =
+static const char *hhe_versions[] =
 {
     "1.0", "1.2", "1.3"
 };
@@ -41,20 +41,6 @@ static char *hhe_versions[] =
 
 deh_hhe_version_t deh_hhe_version = deh_hhe_1_0;
 
-// deh_ammo.c:
-extern deh_section_t deh_section_ammo;
-// deh_frame.c:
-extern deh_section_t deh_section_frame;
-// deh_ptr.c:
-extern deh_section_t deh_section_pointer;
-// deh_sound.c
-extern deh_section_t deh_section_sound;
-// deh_htext.c:
-extern deh_section_t deh_section_heretic_text;
-// deh_thing.c:
-extern deh_section_t deh_section_thing;
-// deh_weapon.c:
-extern deh_section_t deh_section_weapon;
 
 //
 // List of section types:
@@ -72,7 +58,7 @@ deh_section_t *deh_section_types[] =
     NULL
 };
 
-static void SetHHEVersionByName(char *name)
+static void SetHHEVersionByName(const char *name)
 {
     int i;
 

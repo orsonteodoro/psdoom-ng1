@@ -24,6 +24,8 @@
 #include "p_local.h"
 #include "v_video.h"
 #include "i_swap.h"
+#include "am_map.h"
+
 
 // MACROS ------------------------------------------------------------------
 
@@ -93,7 +95,6 @@ static char *HubText;
 //
 //========================================================================
 
-extern void AM_Stop(void);
 
 void IN_Start(void)
 {
@@ -153,7 +154,7 @@ static void Stop(void)
 //      Initializes the stats for single player mode
 //========================================================================
 
-static char *ClusMsgLumpNames[] = {
+static const char *ClusMsgLumpNames[] = {
     "clus1msg",
     "clus2msg",
     "clus3msg",
@@ -167,14 +168,11 @@ static void InitStats(void)
     int j;
     int oldCluster;
     signed int slaughterfrags;
-    int posnum;
     int slaughtercount;
     int playercount;
-    char *msgLumpName;
+    const char *msgLumpName;
     int msgSize;
     int msgLump;
-
-    extern int LeaveMap;
 
     if (!deathmatch)
     {
@@ -205,7 +203,6 @@ static void InitStats(void)
         gametype = DEATHMATCH;
         slaughterboy = 0;
         slaughterfrags = -9999;
-        posnum = 0;
         playercount = 0;
         slaughtercount = 0;
         for (i = 0; i < maxplayers; i++)
@@ -221,7 +218,6 @@ static void InitStats(void)
                         totalFrags[i] += players[i].frags[j];
                     }
                 }
-                posnum++;
             }
             if (totalFrags[i] > slaughterfrags)
             {

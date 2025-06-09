@@ -30,11 +30,11 @@
 #include "doomkeys.h"
 #include "v_video.h"
 
-vertex_t KeyPoints[NUMKEYS];
+vertex_t KeyPoints[NUM_KEY_TYPES];
 
 #define NUMALIAS 3              // Number of antialiased lines.
 
-char *LevelNames[] = {
+const char *LevelNames[] = {
     // EPISODE 1 - THE CITY OF THE DAMNED
     "E1M1:  THE DOCKS",
     "E1M2:  THE DUNGEONS",
@@ -94,8 +94,6 @@ char *LevelNames[] = {
 static int cheating = 0;
 static int grid = 0;
 
-static int leveljuststarted = 1;        // kluge until AM_LevelInit() is called
-
 boolean automapactive = false;
 static int finit_width = SCREENWIDTH;
 static int finit_height = SCREENHEIGHT - 42;
@@ -145,8 +143,6 @@ static int followplayer = 1;    // specifies whether to follow the player around
 static char cheat_amap[] = { 'r', 'a', 'v', 'm', 'a', 'p' };
 
 static byte cheatcount = 0;
-
-extern boolean viewactive;
 
 static byte antialias[NUMALIAS][8] = {
     {96, 97, 98, 99, 100, 101, 102, 103},
@@ -435,8 +431,6 @@ void AM_clearMarks(void)
 
 void AM_LevelInit(void)
 {
-    leveljuststarted = 0;
-
     f_x = f_y = 0;
     f_w = finit_width;
     f_h = finit_height;
@@ -1500,7 +1494,7 @@ void AM_drawCrosshair(int color)
 
 void AM_Drawer(void)
 {
-    char *level_name;
+    const char *level_name;
     int numepisodes;
 
     if (!automapactive)

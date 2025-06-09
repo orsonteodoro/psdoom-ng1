@@ -60,7 +60,7 @@ finalestage_t finalestage;
 unsigned int finalecount;
 
 // haleyjd 09/12/10: [STRIFE] Slideshow variables
-char         *slideshow_panel;
+const char   *slideshow_panel;
 unsigned int  slideshow_tics;
 int           slideshow_state;
 
@@ -518,7 +518,6 @@ void F_Ticker (void)
 // haleyjd 09/13/10: Not present in Strife: Cast drawing functions
 
 #include "hu_stuff.h"
-extern	patch_t *hu_font[HU_FONTSIZE];
 
 /*
 //

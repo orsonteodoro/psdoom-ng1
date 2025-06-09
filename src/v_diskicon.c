@@ -27,6 +27,8 @@
 
 #include "v_diskicon.h"
 
+#include <string.h>
+
 // Only display the disk icon if more then this much bytes have been read
 // during the previous tic.
 
@@ -35,8 +37,8 @@ static const int diskicon_threshold = 20*1024;
 // Two buffers: disk_data contains the data representing the disk icon
 // (raw, not a patch_t) while saved_background is an equivalently-sized
 // buffer where we save the background data while the disk is on screen.
-static byte *disk_data;
-static byte *saved_background;
+static pixel_t *disk_data;
+static pixel_t *saved_background;
 
 static int loading_disk_xoffs = 0;
 static int loading_disk_yoffs = 0;
@@ -45,11 +47,11 @@ static int loading_disk_yoffs = 0;
 static size_t recent_bytes_read = 0;
 static boolean disk_drawn;
 
-static void CopyRegion(byte *dest, int dest_pitch,
-                       byte *src, int src_pitch,
+static void CopyRegion(pixel_t *dest, int dest_pitch,
+                       pixel_t *src, int src_pitch,
                        int w, int h)
 {
-    byte *s, *d;
+    pixel_t *s, *d;
     int y;
 
     s = src; d = dest;
@@ -61,9 +63,9 @@ static void CopyRegion(byte *dest, int dest_pitch,
     }
 }
 
-static void SaveDiskData(char *disk_lump, int xoffs, int yoffs)
+static void SaveDiskData(const char *disk_lump, int xoffs, int yoffs)
 {
-    byte *tmpscreen;
+    pixel_t *tmpscreen;
     patch_t *disk;
 
     // Allocate a complete temporary screen where we'll draw the patch.
@@ -73,6 +75,13 @@ static void SaveDiskData(char *disk_lump, int xoffs, int yoffs)
     V_UseBuffer(tmpscreen);
 
     // Buffer where we'll save the disk data.
+
+    if (disk_data != NULL)
+    {
+        Z_Free(disk_data);
+        disk_data = NULL;
+    }
+
     disk_data = Z_Malloc(LOADING_DISK_W * LOADING_DISK_H * sizeof(*disk_data),
                          PU_STATIC, NULL);
 
@@ -88,10 +97,16 @@ static void SaveDiskData(char *disk_lump, int xoffs, int yoffs)
     Z_Free(tmpscreen);
 }
 
-void V_EnableLoadingDisk(char *lump_name, int xoffs, int yoffs)
+void V_EnableLoadingDisk(const char *lump_name, int xoffs, int yoffs)
 {
     loading_disk_xoffs = xoffs;
     loading_disk_yoffs = yoffs;
+
+    if (saved_background != NULL)
+    {
+        Z_Free(saved_background);
+        saved_background = NULL;
+    }
 
     saved_background = Z_Malloc(LOADING_DISK_W * LOADING_DISK_H
                                  * sizeof(*saved_background),
@@ -104,7 +119,7 @@ void V_BeginRead(size_t nbytes)
     recent_bytes_read += nbytes;
 }
 
-static byte *DiskRegionPointer(void)
+static pixel_t *DiskRegionPointer(void)
 {
     return I_VideoBuffer
          + loading_disk_yoffs * SCREENWIDTH

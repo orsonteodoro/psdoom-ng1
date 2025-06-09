@@ -33,6 +33,10 @@
 // NETWORKING
 //
 
+
+#ifndef DISABLE_SDL2NET
+
+
 #include <SDL_net.h>
 
 #define DEFAULT_PORT 2342
@@ -127,6 +131,7 @@ static net_addr_t *NET_SDL_FindAddress(IPaddress *addr)
     new_entry = Z_Malloc(sizeof(addrpair_t), PU_STATIC, 0);
 
     new_entry->sdl_addr = *addr;
+    new_entry->net_addr.refcount = 0;
     new_entry->net_addr.handle = &new_entry->sdl_addr;
     new_entry->net_addr.module = &net_sdl_module;
 
@@ -325,7 +330,7 @@ void NET_SDL_AddrToString(net_addr_t *addr, char *buffer, int buffer_len)
     }
 }
 
-net_addr_t *NET_SDL_ResolveAddress(char *address)
+net_addr_t *NET_SDL_ResolveAddress(const char *address)
 {
     IPaddress ip;
     char *addr_hostname;
@@ -335,25 +340,21 @@ net_addr_t *NET_SDL_ResolveAddress(char *address)
 
     colon = strchr(address, ':');
 
+    addr_hostname = M_StringDuplicate(address);
     if (colon != NULL)
     {
-	addr_hostname = M_StringDuplicate(address);
 	addr_hostname[colon - address] = '\0';
 	addr_port = atoi(colon + 1);
     }
     else
     {
-	addr_hostname = address;
 	addr_port = port;
     }
     
     result = SDLNet_ResolveHost(&ip, addr_hostname, addr_port);
 
-    if (addr_hostname != address)
-    {
-	free(addr_hostname);
-    }
-    
+    free(addr_hostname);
+
     if (result)
     {
         // unable to resolve
@@ -379,3 +380,62 @@ net_module_t net_sdl_module =
     NET_SDL_ResolveAddress,
 };
 
+
+#else // DISABLE_SDL2NET
+
+// no-op implementation
+
+
+static boolean NET_NULL_InitClient(void)
+{
+    return false;
+}
+
+
+static boolean NET_NULL_InitServer(void)
+{
+    return false;
+}
+
+
+static void NET_NULL_SendPacket(net_addr_t *addr, net_packet_t *packet)
+{
+}
+
+
+static boolean NET_NULL_RecvPacket(net_addr_t **addr, net_packet_t **packet)
+{
+    return false;
+}
+
+
+static void NET_NULL_AddrToString(net_addr_t *addr, char *buffer, int buffer_len)
+{
+
+}
+
+
+static void NET_NULL_FreeAddress(net_addr_t *addr)
+{
+}
+
+
+net_addr_t *NET_NULL_ResolveAddress(const char *address)
+{
+    return NULL;
+}
+
+
+net_module_t net_sdl_module =
+{
+    NET_NULL_InitClient,
+    NET_NULL_InitServer,
+    NET_NULL_SendPacket,
+    NET_NULL_RecvPacket,
+    NET_NULL_AddrToString,
+    NET_NULL_FreeAddress,
+    NET_NULL_ResolveAddress,
+};
+
+
+#endif // DISABLE_SDL2NET

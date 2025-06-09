@@ -20,6 +20,8 @@
 #include "h2def.h"
 #include "s_sound.h"
 #include "doomkeys.h"
+#include "i_input.h"
+#include "i_joystick.h"
 #include "i_video.h"
 #include "i_system.h"
 #include "i_timer.h"
@@ -33,12 +35,9 @@
 
 // External functions
 
-extern void R_InitSky(int map);
-extern void P_PlayerNextArtifact(player_t * player);
 
 // Functions
 
-boolean G_CheckDemoStatus(void);
 void G_ReadDemoTiccmd(ticcmd_t * cmd);
 void G_WriteDemoTiccmd(ticcmd_t * cmd);
 
@@ -58,7 +57,9 @@ void G_DoSingleReborn(void);
 void H2_PageTicker(void);
 void H2_AdvanceDemo(void);
 
-extern boolean mn_SuicideConsole;
+static boolean InventoryMoveLeft();
+static boolean InventoryMoveRight();
+
 
 gameaction_t gameaction;
 gamestate_t gamestate;
@@ -91,13 +92,14 @@ int consoleplayer;              // player taking events and displaying
 int displayplayer;              // view being displayed
 int levelstarttic;              // gametic at level start
 
-char demoname[32];
+char *demoname;
 boolean demorecording;
 boolean longtics;               // specify high resolution turning in demos
 boolean lowres_turn;
 boolean shortticfix;            // calculate lowres turning like doom
 boolean demoplayback;
 boolean demoextend;
+boolean netdemo;
 byte *demobuffer, *demo_p, *demoend;
 boolean singledemo;             // quit after playing a demo from cmdline
 
@@ -142,7 +144,6 @@ static int next_weapon = 0;
 
 #define SLOWTURNTICS    6
 
-#define NUMKEYS 256
 boolean gamekeydown[NUMKEYS];
 int turnheld;                   // for accelerative turning
 int lookheld;
@@ -159,6 +160,7 @@ int dclicktime2, dclickstate2, dclicks2;
 
 int joyxmove, joyymove;         // joystick values are repeated
 int joystrafemove;
+int joylook;
 boolean joyarray[MAX_JOY_BUTTONS + 1];
 boolean *joybuttons = &joyarray[1];     // allow [-1]
 
@@ -190,7 +192,6 @@ int testcontrols_mousespeed;
 ====================
 */
 
-extern boolean inventory;
 boolean usearti = true;
 
 void G_BuildTiccmd(ticcmd_t *cmd, int maketic)
@@ -202,8 +203,6 @@ void G_BuildTiccmd(ticcmd_t *cmd, int maketic)
     int look, arti;
     int flyheight;
     int pClass;
-
-    extern boolean artiskip;
 
     // haleyjd: removed externdriver crap
 
@@ -226,7 +225,8 @@ void G_BuildTiccmd(ticcmd_t *cmd, int maketic)
     speed = key_speed >= NUMKEYS
         || joybspeed >= MAX_JOY_BUTTONS
         || gamekeydown[key_speed]
-        || joybuttons[joybspeed];
+        || joybuttons[joybspeed]
+        || mousebuttons[mousebspeed];
 
     // haleyjd: removed externdriver crap
     
@@ -236,7 +236,8 @@ void G_BuildTiccmd(ticcmd_t *cmd, int maketic)
 // use two stage accelerative turning on the keyboard and joystick
 //
     if (joyxmove < 0 || joyxmove > 0
-        || gamekeydown[key_right] || gamekeydown[key_left])
+        || gamekeydown[key_right] || gamekeydown[key_left]
+        || mousebuttons[mousebturnright] || mousebuttons[mousebturnleft])
         turnheld += ticdup;
     else
         turnheld = 0;
@@ -267,33 +268,54 @@ void G_BuildTiccmd(ticcmd_t *cmd, int maketic)
 //
     if (strafe)
     {
-        if (gamekeydown[key_right])
+        if (gamekeydown[key_right] || mousebuttons[mousebturnright])
         {
             side += sidemove[pClass][speed];
         }
-        if (gamekeydown[key_left])
+        if (gamekeydown[key_left] || mousebuttons[mousebturnleft])
         {
             side -= sidemove[pClass][speed];
         }
-        if (joyxmove > 0)
+        if (use_analog && joyxmove)
         {
-            side += sidemove[pClass][speed];
+            joyxmove = joyxmove * joystick_move_sensitivity / 10;
+            joyxmove = (joyxmove > FRACUNIT) ? FRACUNIT : joyxmove;
+            joyxmove = (joyxmove < -FRACUNIT) ? -FRACUNIT : joyxmove;
+            side += FixedMul(sidemove[pClass][speed], joyxmove);
         }
-        if (joyxmove < 0)
+        else if (joystick_move_sensitivity)
         {
-            side -= sidemove[pClass][speed];
+            if (joyxmove > 0)
+            {
+                side += sidemove[pClass][speed];
+            }
+            if (joyxmove < 0)
+            {
+                side -= sidemove[pClass][speed];
+            }
         }
     }
     else
     {
-        if (gamekeydown[key_right])
+        if (gamekeydown[key_right] || mousebuttons[mousebturnright])
             cmd->angleturn -= angleturn[tspeed];
-        if (gamekeydown[key_left])
+        if (gamekeydown[key_left] || mousebuttons[mousebturnleft])
             cmd->angleturn += angleturn[tspeed];
-        if (joyxmove > 0)
-            cmd->angleturn -= angleturn[tspeed];
-        if (joyxmove < 0)
-            cmd->angleturn += angleturn[tspeed];
+        if (use_analog && joyxmove)
+        {
+            // Cubic response curve allows for finer control when stick
+            // deflection is small.
+            joyxmove = FixedMul(FixedMul(joyxmove, joyxmove), joyxmove);
+            joyxmove = joyxmove * joystick_turn_sensitivity / 10;
+            cmd->angleturn -= FixedMul(angleturn[1], joyxmove);
+        }
+        else if (joystick_turn_sensitivity)
+        {
+            if (joyxmove > 0)
+                cmd->angleturn -= angleturn[tspeed];
+            if (joyxmove < 0)
+                cmd->angleturn += angleturn[tspeed];
+        }
     }
 
     if (gamekeydown[key_up])
@@ -304,23 +326,48 @@ void G_BuildTiccmd(ticcmd_t *cmd, int maketic)
     {
         forward -= forwardmove[pClass][speed];
     }
-    if (joyymove < 0)
+    if (use_analog && joyymove)
     {
-        forward += forwardmove[pClass][speed];
+        joyymove = joyymove * joystick_move_sensitivity / 10;
+        joyymove = (joyymove > FRACUNIT) ? FRACUNIT : joyymove;
+        joyymove = (joyymove < -FRACUNIT) ? FRACUNIT : joyymove;
+        forward -= FixedMul(forwardmove[pClass][speed], joyymove);
     }
-    if (joyymove > 0)
+    else if (joystick_move_sensitivity)
     {
-        forward -= forwardmove[pClass][speed];
+        if (joyymove < 0)
+        {
+            forward += forwardmove[pClass][speed];
+        }
+        if (joyymove > 0)
+        {
+            forward -= forwardmove[pClass][speed];
+        }
     }
     if (gamekeydown[key_straferight] || mousebuttons[mousebstraferight]
-     || joystrafemove > 0 || joybuttons[joybstraferight])
+     || joybuttons[joybstraferight])
     {
         side += sidemove[pClass][speed];
     }
     if (gamekeydown[key_strafeleft] || mousebuttons[mousebstrafeleft]
-     || joystrafemove < 0 || joybuttons[joybstrafeleft])
+     || joybuttons[joybstrafeleft])
     {
         side -= sidemove[pClass][speed];
+    }
+
+    if (use_analog && joystrafemove)
+    {
+        joystrafemove = joystrafemove * joystick_move_sensitivity / 10;
+        joystrafemove = (joystrafemove > FRACUNIT) ? FRACUNIT : joystrafemove;
+        joystrafemove = (joystrafemove < -FRACUNIT) ? -FRACUNIT : joystrafemove;
+        side += FixedMul(sidemove[pClass][speed], joystrafemove);
+    }
+    else if (joystick_move_sensitivity)
+    {
+        if (joystrafemove < 0)
+            side -= sidemove[pClass][speed];
+        if (joystrafemove > 0)
+            side += sidemove[pClass][speed];
     }
 
     // Look up/down/center keys
@@ -332,6 +379,25 @@ void G_BuildTiccmd(ticcmd_t *cmd, int maketic)
     {
         look = -lspeed;
     }
+    if (use_analog && joylook)
+    {
+        joylook = joylook * joystick_look_sensitivity / 10;
+        joylook = (joylook > FRACUNIT) ? FRACUNIT : joylook;
+        joylook = (joylook < -FRACUNIT) ? -FRACUNIT : joylook;
+        look = -FixedMul(2, joylook);
+    }
+    else if (joystick_look_sensitivity)
+    {
+        if (joylook < 0)
+        {
+            look = lspeed;
+        }
+
+        if (joylook > 0)
+        {
+            look = -lspeed;
+        }
+    }
     // haleyjd: removed externdriver crap
     if (gamekeydown[key_lookcenter])
     {
@@ -341,28 +407,31 @@ void G_BuildTiccmd(ticcmd_t *cmd, int maketic)
     // haleyjd: removed externdriver crap
 
     // Fly up/down/drop keys
-    if (gamekeydown[key_flyup])
+    if (gamekeydown[key_flyup] || joybuttons[joybflyup])
     {
         flyheight = 5;          // note that the actual flyheight will be twice this
     }
-    if (gamekeydown[key_flydown])
+    if (gamekeydown[key_flydown] || joybuttons[joybflydown])
     {
         flyheight = -5;
     }
-    if (gamekeydown[key_flycenter])
+    if (gamekeydown[key_flycenter] || joybuttons[joybflycenter])
     {
         flyheight = TOCENTER;
         // haleyjd: removed externdriver crap
         look = TOCENTER;
     }
     // Use artifact key
-    if (gamekeydown[key_useartifact])
+    if (gamekeydown[key_useartifact] || mousebuttons[mousebuseartifact]
+        || joybuttons[joybuseartifact])
     {
         if (gamekeydown[key_speed] && artiskip)
         {
             if (players[consoleplayer].inventory[inv_ptr].type != arti_none)
             {                   // Skip an artifact
                 gamekeydown[key_useartifact] = false;
+                mousebuttons[mousebuseartifact] = false;
+                joybuttons[joybuseartifact] = false;
                 P_PlayerNextArtifact(&players[consoleplayer]);
             }
         }
@@ -699,7 +768,7 @@ void G_DoLoadLevel(void)
 // 
 
     memset(gamekeydown, 0, sizeof(gamekeydown));
-    joyxmove = joyymove = joystrafemove = 0;
+    joyxmove = joyymove = joystrafemove = joylook = 0;
     mousex = mousey = 0;
     sendpause = sendsave = paused = false;
     memset(mousearray, 0, sizeof(mousearray));
@@ -714,6 +783,9 @@ void G_DoLoadLevel(void)
 static void SetJoyButtons(unsigned int buttons_mask)
 {
     int i;
+    player_t *plr;
+
+    plr = &players[consoleplayer];
 
     for (i=0; i<MAX_JOY_BUTTONS; ++i)
     {
@@ -733,15 +805,92 @@ static void SetJoyButtons(unsigned int buttons_mask)
             {
                 next_weapon = 1;
             }
+            else if (i == joybinvleft)
+            {
+                InventoryMoveLeft();
+            }
+            else if (i == joybinvright)
+            {
+                InventoryMoveRight();
+            }
+            else if (i == joybuseartifact)
+            {
+                if (!inventory)
+                {
+                    plr->readyArtifact = plr->inventory[inv_ptr].type;
+                }
+                usearti = true;
+            }
         }
 
         joybuttons[i] = button_on;
     }
 }
 
+// If an InventoryMove*() function is called when the inventory is not active,
+// it will instead activate the inventory without attempting to change the
+// selected item. This action is indicated by a return value of false.
+// Otherwise, it attempts to change items and will return a value of true.
+
+static boolean InventoryMoveLeft()
+{
+    inventoryTics = 5 * 35;
+    if (!inventory)
+    {
+        inventory = true;
+        return false;
+    }
+    inv_ptr--;
+    if (inv_ptr < 0)
+    {
+        inv_ptr = 0;
+    }
+    else
+    {
+        curpos--;
+        if (curpos < 0)
+        {
+            curpos = 0;
+        }
+    }
+    return true;
+}
+
+static boolean InventoryMoveRight()
+{
+    player_t *plr;
+
+    plr = &players[consoleplayer];
+    inventoryTics = 5 * 35;
+    if (!inventory)
+    {
+        inventory = true;
+        return false;
+    }
+    inv_ptr++;
+    if (inv_ptr >= plr->inventorySlotNum)
+    {
+        inv_ptr--;
+        if (inv_ptr < 0)
+            inv_ptr = 0;
+    }
+    else
+    {
+        curpos++;
+        if (curpos > 6)
+        {
+            curpos = 6;
+        }
+    }
+    return true;
+}
+
 static void SetMouseButtons(unsigned int buttons_mask)
 {
     int i;
+    player_t *plr;
+
+    plr = &players[consoleplayer];
 
     for (i=0; i<MAX_MOUSE_BUTTONS; ++i)
     {
@@ -758,6 +907,22 @@ static void SetMouseButtons(unsigned int buttons_mask)
             else if (i == mousebnextweapon)
             {
                 next_weapon = 1;
+            }
+            else if (i == mousebinvleft)
+            {
+                InventoryMoveLeft();
+            }
+            else if (i == mousebinvright)
+            {
+                InventoryMoveRight();
+            }
+            else if (i == mousebuseartifact)
+            {
+                if (!inventory)
+                {
+                    plr->readyArtifact = plr->inventory[inv_ptr].type;
+                }
+                usearti = true;
             }
         }
 
@@ -778,7 +943,6 @@ static void SetMouseButtons(unsigned int buttons_mask)
 boolean G_Responder(event_t * ev)
 {
     player_t *plr;
-    extern boolean MenuActive;
 
     plr = &players[consoleplayer];
     if (ev->type == ev_keyup && ev->data1 == key_useartifact)
@@ -842,51 +1006,19 @@ boolean G_Responder(event_t * ev)
         case ev_keydown:
             if (ev->data1 == key_invleft)
             {
-                inventoryTics = 5 * 35;
-                if (!inventory)
+                if (InventoryMoveLeft())
                 {
-                    inventory = true;
-                    break;
+                    return (true);
                 }
-                inv_ptr--;
-                if (inv_ptr < 0)
-                {
-                    inv_ptr = 0;
-                }
-                else
-                {
-                    curpos--;
-                    if (curpos < 0)
-                    {
-                        curpos = 0;
-                    }
-                }
-                return (true);
+                break;
             }
             if (ev->data1 == key_invright)
             {
-                inventoryTics = 5 * 35;
-                if (!inventory)
+                if (InventoryMoveRight())
                 {
-                    inventory = true;
-                    break;
+                    return (true);
                 }
-                inv_ptr++;
-                if (inv_ptr >= plr->inventorySlotNum)
-                {
-                    inv_ptr--;
-                    if (inv_ptr < 0)
-                        inv_ptr = 0;
-                }
-                else
-                {
-                    curpos++;
-                    if (curpos > 6)
-                    {
-                        curpos = 6;
-                    }
-                }
-                return (true);
+                break;
             }
             if (ev->data1 == key_pause && !MenuActive)
             {
@@ -917,6 +1049,7 @@ boolean G_Responder(event_t * ev)
             joyxmove = ev->data2;
             joyymove = ev->data3;
             joystrafemove = ev->data4;
+            joylook = ev->data5;
             return (true);      // eat events
 
         default:
@@ -1016,7 +1149,7 @@ void G_Ticker(void)
             if (demorecording)
                 G_WriteDemoTiccmd(cmd);
 
-            if (netgame && !(gametic % ticdup))
+            if (netgame && !netdemo && !(gametic % ticdup))
             {
                 if (gametic > BACKUPTICS
                     && consistancy[i][buf] != cmd->consistancy)
@@ -1790,6 +1923,7 @@ void G_InitNew(skill_t skill, int episode, int map)
         // loading a saved one from the menu, and only during playback.
         demorecording = false;
         demoplayback = false;
+        netdemo = false;
         usergame = true;            // will be set false if a demo
     }
     paused = false;
@@ -1947,8 +2081,9 @@ void G_WriteDemoTiccmd(ticcmd_t * cmd)
 */
 
 void G_RecordDemo(skill_t skill, int numplayers, int episode, int map,
-                  char *name)
+                  const char *name)
 {
+    size_t demoname_size;
     int i;
     int maxsize;
 
@@ -1975,8 +2110,9 @@ void G_RecordDemo(skill_t skill, int numplayers, int episode, int map,
 
     G_InitNew(skill, episode, map);
     usergame = false;
-    M_StringCopy(demoname, name, sizeof(demoname));
-    M_StringConcat(demoname, ".lmp", sizeof(demoname));
+    demoname_size = strlen(name) + 5;
+    demoname = Z_Malloc(demoname_size, PU_STATIC, NULL);
+    M_snprintf(demoname, demoname_size, "%s.lmp", name);
     maxsize = 0x20000;
 
     //!
@@ -2039,9 +2175,9 @@ void G_RecordDemo(skill_t skill, int numplayers, int episode, int map,
 ===================
 */
 
-char *defdemoname;
+static const char *defdemoname;
 
-void G_DeferedPlayDemo(char *name)
+void G_DeferedPlayDemo(const char *name)
 {
     defdemoname = name;
     gameaction = ga_playdemo;
@@ -2087,6 +2223,12 @@ void G_DoPlayDemo(void)
         PlayerClass[i] = *demo_p++;
     }
 
+    if (playeringame[1] || M_ParmExists("-solo-net")
+                        || M_ParmExists("-netdemo"))
+    {
+        netgame = true;
+    }
+
     // Initialize world info, etc.
     G_StartNewInit();
 
@@ -2095,6 +2237,11 @@ void G_DoPlayDemo(void)
     precache = true;
     usergame = false;
     demoplayback = true;
+
+    if (netgame)
+    {
+        netdemo = true;
+    }
 }
 
 
@@ -2129,6 +2276,12 @@ void G_TimeDemo(char *name)
         PlayerClass[i] = *demo_p++;
     }
 
+    if (playeringame[1] || M_ParmExists("-solo-net")
+                        || M_ParmExists("-netdemo"))
+    {
+        netgame = true;
+    }
+
     G_InitNew(skill, episode, map);
     starttime = I_GetTime();
 
@@ -2136,6 +2289,11 @@ void G_TimeDemo(char *name)
     demoplayback = true;
     timingdemo = true;
     singletics = true;
+
+    if (netgame)
+    {
+        netdemo = true;
+    }
 }
 
 
@@ -2170,6 +2328,8 @@ boolean G_CheckDemoStatus(void)
 
         W_ReleaseLumpName(defdemoname);
         demoplayback = false;
+        netdemo = false;
+        netgame = false;
         H2_AdvanceDemo();
         return true;
     }

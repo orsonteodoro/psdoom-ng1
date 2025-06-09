@@ -24,7 +24,6 @@
 #include <string.h>
 #include <assert.h>
 #include "SDL.h"
-#include "SDL_mixer.h"
 
 #ifdef HAVE_LIBSAMPLERATE
 #include <samplerate.h>
@@ -41,6 +40,23 @@
 
 #include "doomtype.h"
 
+
+int use_libsamplerate = 0;
+
+// Scale factor used when converting libsamplerate floating point numbers
+// to integers. Too high means the sounds can clip; too low means they
+// will be too quiet. This is an amount that should avoid clipping most
+// of the time: with all the Doom IWAD sound effects, at least. If a PWAD
+// is used, clipping might occur.
+
+float libsamplerate_scale = 0.65f;
+
+
+#ifndef DISABLE_SDL2MIXER
+
+#include "SDL_mixer.h"
+
+
 #define LOW_PASS_FILTER
 //#define DEBUG_DUMP_WAVS
 #define NUM_CHANNELS 16
@@ -55,8 +71,6 @@ struct allocated_sound_s
     int pitch;
     allocated_sound_t *prev, *next;
 };
-
-static boolean setpanning_workaround = false;
 
 static boolean sound_initialized = false;
 
@@ -79,15 +93,6 @@ static allocated_sound_t *allocated_sounds_head = NULL;
 static allocated_sound_t *allocated_sounds_tail = NULL;
 static int allocated_sounds_size = 0;
 
-int use_libsamplerate = 0;
-
-// Scale factor used when converting libsamplerate floating point numbers
-// to integers. Too high means the sounds can clip; too low means they
-// will be too quiet. This is an amount that should avoid clipping most
-// of the time: with all the Doom IWAD sound effects, at least. If a PWAD
-// is used, clipping might occur.
-
-float libsamplerate_scale = 0.65f;
 
 // Hook a sound into the linked list at the head.
 
@@ -554,7 +559,7 @@ static void WriteWAV(char *filename, byte *data,
     unsigned int i;
     unsigned short s;
 
-    wav = fopen(filename, "wb");
+    wav = M_fopen(filename, "wb");
 
     // Header
 
@@ -633,11 +638,15 @@ static boolean ExpandSoundData_SDL(sfxinfo_t *sfxinfo,
                           AUDIO_U8, 1, samplerate,
                           mixer_format, mixer_channels, mixer_freq))
     {
-        convertor.buf = chunk->abuf;
         convertor.len = length;
+        convertor.buf = malloc(convertor.len * convertor.len_mult);
+        assert(convertor.buf != NULL);
         memcpy(convertor.buf, data, length);
 
         SDL_ConvertAudio(&convertor);
+
+        memcpy(chunk->abuf, convertor.buf, chunk->alen);
+        free(convertor.buf);
     }
     else
     {
@@ -806,21 +815,12 @@ static void GetSfxLumpName(sfxinfo_t *sfx, char *buf, size_t buf_len)
     }
 }
 
-#ifdef HAVE_LIBSAMPLERATE
-
 // Preload all the sound effects - stops nasty ingame freezes
 
 static void I_SDL_PrecacheSounds(sfxinfo_t *sounds, int num_sounds)
 {
     char namebuf[9];
     int i;
-
-    // Don't need to precache the sounds unless we are using libsamplerate.
-
-    if (use_libsamplerate == 0)
-    {
-	return;
-    }
 
     printf("I_SDL_PrecacheSounds: Precaching all sound effects..");
 
@@ -844,15 +844,6 @@ static void I_SDL_PrecacheSounds(sfxinfo_t *sounds, int num_sounds)
 
     printf("\n");
 }
-
-#else
-
-static void I_SDL_PrecacheSounds(sfxinfo_t *sounds, int num_sounds)
-{
-    // no-op
-}
-
-#endif
 
 // Load a SFX chunk into memory and ensure that it is locked.
 
@@ -902,16 +893,6 @@ static void I_SDL_UpdateSoundParams(int handle, int vol, int sep)
     else if ( left > 255) left = 255;
     if (right < 0) right = 0;
     else if (right > 255) right = 255;
-
-    // SDL_mixer version 1.2.8 and earlier has a bug in the Mix_SetPanning
-    // function.  A workaround is to call Mix_UnregisterAllEffects for
-    // the channel before calling it.  This is undesirable as it may lead
-    // to the channel volumes resetting briefly.
-
-    if (setpanning_workaround)
-    {
-        Mix_UnregisterAllEffects(handle);
-    }
 
     Mix_SetPanning(handle, left, right);
 }
@@ -1079,14 +1060,13 @@ static int GetSliceSize(void)
     return 1024;
 }
 
-static boolean I_SDL_InitSound(boolean _use_sfx_prefix)
+static boolean I_SDL_InitSound(GameMission_t mission)
 {
     int i;
 
-    use_sfx_prefix = _use_sfx_prefix;
+    use_sfx_prefix = (mission == doom || mission == strife);
 
     // No sounds yet
-
     for (i=0; i<NUM_CHANNELS; ++i)
     {
         channels_playing[i] = NULL;
@@ -1098,7 +1078,7 @@ static boolean I_SDL_InitSound(boolean _use_sfx_prefix)
         return false;
     }
 
-    if (Mix_OpenAudio(snd_samplerate, AUDIO_S16SYS, 2, GetSliceSize()) < 0)
+    if (Mix_OpenAudioDevice(snd_samplerate, AUDIO_S16SYS, 2, GetSliceSize(), NULL, SDL_AUDIO_ALLOW_FREQUENCY_CHANGE) < 0)
     {
         fprintf(stderr, "Error initialising SDL_mixer: %s\n", Mix_GetError());
         return false;
@@ -1128,32 +1108,6 @@ static boolean I_SDL_InitSound(boolean _use_sfx_prefix)
     }
 #endif
 
-    // SDL_mixer version 1.2.8 and earlier has a bug in the Mix_SetPanning
-    // function that can cause the game to lock up.  If we're using an old
-    // version, we need to apply a workaround.  But the workaround has its
-    // own drawbacks ...
-
-    {
-        const SDL_version *mixer_version;
-        int v;
-
-        mixer_version = Mix_Linked_Version();
-        v = SDL_VERSIONNUM(mixer_version->major,
-                           mixer_version->minor,
-                           mixer_version->patch);
-
-        if (v <= SDL_VERSIONNUM(1, 2, 8))
-        {
-            setpanning_workaround = true;
-            fprintf(stderr, "\n"
-              "ATTENTION: You are using an old version of SDL_mixer!\n"
-              "           This version has a bug that may cause "
-                          "your sound to stutter.\n"
-              "           Please upgrade to a newer version!\n"
-              "\n");
-        }
-    }
-
     Mix_AllocateChannels(NUM_CHANNELS);
 
     SDL_PauseAudio(0);
@@ -1163,7 +1117,7 @@ static boolean I_SDL_InitSound(boolean _use_sfx_prefix)
     return true;
 }
 
-static snddevice_t sound_sdl_devices[] = 
+static const snddevice_t sound_sdl_devices[] =
 {
     SNDDEVICE_SB,
     SNDDEVICE_PAS,
@@ -1173,7 +1127,7 @@ static snddevice_t sound_sdl_devices[] =
     SNDDEVICE_AWE32,
 };
 
-sound_module_t sound_sdl_module = 
+const sound_module_t sound_sdl_module =
 {
     sound_sdl_devices,
     arrlen(sound_sdl_devices),
@@ -1188,3 +1142,5 @@ sound_module_t sound_sdl_module =
     I_SDL_PrecacheSounds,
 };
 
+
+#endif // DISABLE_SDL2MIXER

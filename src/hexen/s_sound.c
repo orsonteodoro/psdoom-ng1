@@ -65,8 +65,6 @@ static int cd_track_end_time = 0;
 //void *mus_sndptr;
 //byte *soundCurve;
 
-extern sfxinfo_t S_sfx[];
-extern musicinfo_t S_music[];
 
 static channel_t Channel[MAX_CHANNELS];
 static void *RegisteredSong;      //the current registered song.
@@ -241,7 +239,7 @@ int S_GetCurrentCDTrack(void)
 //
 //==========================================================================
 
-void S_StartSongName(char *songLump, boolean loop)
+void S_StartSongName(const char *songLump, boolean loop)
 {
     int lumpnum;
     int cdTrack;

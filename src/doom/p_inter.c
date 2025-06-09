@@ -78,7 +78,7 @@ P_GiveAmmo
     if (ammo == am_noammo)
 	return false;
 		
-    if (ammo > NUMAMMO)
+    if (ammo >= NUMAMMO)
 	I_Error ("P_GiveAmmo: bad type %i", ammo);
 		
     if ( player->ammo[ammo] == player->maxammo[ammo]  )
@@ -387,7 +387,7 @@ P_TouchSpecialThing
 	
       case SPR_BON2:
 	player->armorpoints++;		// can go over 100%
-	if (player->armorpoints > deh_max_armor)
+	if (player->armorpoints > deh_max_armor && gameversion > exe_doom_1_2)
 	    player->armorpoints = deh_max_armor;
         // deh_green_armor_class only applies to the green armor shirt;
         // for the armor helmets, armortype 1 is always used.
@@ -402,7 +402,8 @@ P_TouchSpecialThing
 	    player->health = deh_max_soulsphere;
 	player->mo->health = player->health;
 	player->message = DEH_String(GOTSUPER);
-	sound = sfx_getpow;
+	if (gameversion > exe_doom_1_2)
+	    sound = sfx_getpow;
 	break;
 	
       case SPR_MEGA:
@@ -414,7 +415,8 @@ P_TouchSpecialThing
         // affects the MegaArmor.
 	P_GiveArmor (player, 2);
 	player->message = DEH_String(GOTMSPHERE);
-	sound = sfx_getpow;
+	if (gameversion > exe_doom_1_2)
+	    sound = sfx_getpow;
 	break;
 	
 	// cards
@@ -490,7 +492,8 @@ P_TouchSpecialThing
 	if (!P_GivePower (player, pw_invulnerability))
 	    return;
 	player->message = DEH_String(GOTINVUL);
-	sound = sfx_getpow;
+	if (gameversion > exe_doom_1_2)
+	    sound = sfx_getpow;
 	break;
 	
       case SPR_PSTR:
@@ -499,35 +502,40 @@ P_TouchSpecialThing
 	player->message = DEH_String(GOTBERSERK);
 	if (player->readyweapon != wp_fist)
 	    player->pendingweapon = wp_fist;
-	sound = sfx_getpow;
+	if (gameversion > exe_doom_1_2)
+	    sound = sfx_getpow;
 	break;
 	
       case SPR_PINS:
 	if (!P_GivePower (player, pw_invisibility))
 	    return;
 	player->message = DEH_String(GOTINVIS);
-	sound = sfx_getpow;
+	if (gameversion > exe_doom_1_2)
+	    sound = sfx_getpow;
 	break;
 	
       case SPR_SUIT:
 	if (!P_GivePower (player, pw_ironfeet))
 	    return;
 	player->message = DEH_String(GOTSUIT);
-	sound = sfx_getpow;
+	if (gameversion > exe_doom_1_2)
+	    sound = sfx_getpow;
 	break;
 	
       case SPR_PMAP:
 	if (!P_GivePower (player, pw_allmap))
 	    return;
 	player->message = DEH_String(GOTMAP);
-	sound = sfx_getpow;
+	if (gameversion > exe_doom_1_2)
+	    sound = sfx_getpow;
 	break;
 	
       case SPR_PVIS:
 	if (!P_GivePower (player, pw_infrared))
 	    return;
 	player->message = DEH_String(GOTVISOR);
-	sound = sfx_getpow;
+	if (gameversion > exe_doom_1_2)
+	    sound = sfx_getpow;
 	break;
 	
 	// ammo
@@ -997,7 +1005,7 @@ if (source != NULL )
     target->reactiontime = 0;		// we're awake now...	
 
     if ( (!target->threshold || target->type == MT_VILE)
-	 && source && source != target
+	 && source && (source != target || gameversion < exe_doom_1_5)
 	 && source->type != MT_VILE)
     {
 	// if not intent on another player,

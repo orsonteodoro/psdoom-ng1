@@ -294,6 +294,9 @@ extern fixed_t viewcos, viewsin;
 
 extern int detailshift;         // 0 = high, 1 = low
 
+extern int detailLevel;
+extern int screenblocks;
+
 extern void (*colfunc) (void);
 extern void (*basecolfunc) (void);
 extern void (*tlcolfunc) (void);
@@ -307,6 +310,7 @@ fixed_t R_PointToDist(fixed_t x, fixed_t y);
 fixed_t R_ScaleFromGlobalAngle(angle_t visangle);
 subsector_t *R_PointInSubsector(fixed_t x, fixed_t y);
 void R_AddPointToBox(int x, int y, fixed_t * box);
+void R_ExecuteSetViewSize(void);
 
 
 //
@@ -340,6 +344,8 @@ void R_RenderBSPNode(int bspnum);
 // R_segs.c
 //
 extern int rw_angle1;           // angle to line origin
+extern lighttable_t **walllights;
+
 
 void R_RenderMaskedSegRange(drawseg_t * ds, int x1, int x2);
 
@@ -392,6 +398,9 @@ extern int *texturetranslation; // for global animation
 
 extern int firstspritelump, lastspritelump, numspritelumps;
 
+extern int columnofs[MAXWIDTH];
+
+
 byte *R_GetColumn(int tex, int col);
 void R_InitData(void);
 void R_PrecacheLevel(void);
@@ -427,7 +436,7 @@ void R_SortVisSprites(void);
 void R_AddSprites(sector_t * sec);
 void R_AddPSprites(void);
 void R_DrawSprites(void);
-void R_InitSprites(char **namelist);
+void R_InitSprites(const char **namelist);
 void R_ClearSprites(void);
 void R_DrawMasked(void);
 void R_ClipVisSprite(vissprite_t * vis, int xl, int xh);
@@ -445,6 +454,8 @@ extern int dc_yh;
 extern fixed_t dc_iscale;
 extern fixed_t dc_texturemid;
 extern byte *dc_source;         // first pixel in a column
+extern byte *ylookup[MAXHEIGHT];
+
 
 void R_DrawColumn(void);
 void R_DrawColumnLow(void);

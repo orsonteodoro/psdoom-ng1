@@ -19,33 +19,13 @@
 #include "deh_defs.h"
 #include "deh_main.h"
 
-char *deh_signatures[] =
+const char *deh_signatures[] =
 {
     "Patch File for DeHackEd v2.3",
     "Patch File for DeHackEd v3.0",
     NULL
 };
 
-// deh_ammo.c:
-extern deh_section_t deh_section_ammo;
-// deh_cheat.c:
-extern deh_section_t deh_section_cheat;
-// deh_frame.c:
-extern deh_section_t deh_section_frame;
-// deh_misc.c:
-extern deh_section_t deh_section_misc;
-// deh_ptr.c:
-extern deh_section_t deh_section_pointer;
-// deh_sound.c
-extern deh_section_t deh_section_sound;
-// deh_text.c:
-extern deh_section_t deh_section_text;
-// deh_thing.c:
-extern deh_section_t deh_section_thing;
-// deh_weapon.c:
-extern deh_section_t deh_section_weapon;
-// deh_bexstr.c:
-extern deh_section_t deh_section_bexstr;
 
 //
 // List of section types:

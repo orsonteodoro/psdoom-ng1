@@ -28,7 +28,7 @@ typedef struct _wad_file_s wad_file_t;
 typedef struct
 {
     // Open a file for reading.
-    wad_file_t *(*OpenFile)(char *path);
+    wad_file_t *(*OpenFile)(const char *path);
 
     // Close the specified file.
     void (*CloseFile)(wad_file_t *file);
@@ -38,6 +38,18 @@ typedef struct
     size_t (*Read)(wad_file_t *file, unsigned int offset,
                    void *buffer, size_t buffer_len);
 } wad_file_class_t;
+
+
+extern wad_file_class_t stdc_wad_file;
+
+#ifdef _WIN32
+extern wad_file_class_t win32_wad_file;
+#endif
+
+#ifdef HAVE_MMAP
+extern wad_file_class_t posix_wad_file;
+#endif
+
 
 struct _wad_file_s
 {
@@ -58,7 +70,7 @@ struct _wad_file_s
 // Open the specified file. Returns a pointer to a new wad_file_t 
 // handle for the WAD file, or NULL if it could not be opened.
 
-wad_file_t *W_OpenFile(char *path);
+wad_file_t *W_OpenFile(const char *path);
 
 // Close the specified WAD file.
 

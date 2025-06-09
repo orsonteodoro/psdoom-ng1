@@ -34,6 +34,8 @@
 #include "m_misc.h"
 #include "m_saves.h" // STRIFE
 #include "m_random.h"
+#include "i_input.h"
+#include "i_joystick.h"
 #include "i_system.h"
 #include "i_timer.h"
 #include "i_video.h"
@@ -218,6 +220,7 @@ static int      dclicks2;
 static int      joyxmove;
 static int      joyymove;
 static int      joystrafemove;
+static int      joylook;
 static boolean  joyarray[MAX_JOY_BUTTONS + 1]; 
 static boolean *joybuttons = &joyarray[1];		// allow [-1] 
  
@@ -309,6 +312,12 @@ static int G_NextWeapon(int direction)
         }
     }
 
+    // The current weapon must be present in weapon_order_table
+    // otherwise something has gone terribly wrong
+    if (i >= arrlen(weapon_order_table)) {
+        I_Error("Internal error: weapon %d not present in weapon_order_table", weapon);
+    }
+
     // Switch weapon.
     start_i = i;
     do
@@ -342,11 +351,11 @@ void G_BuildTiccmd (ticcmd_t* cmd, int maketic)
         consistancy[consoleplayer][maketic%BACKUPTICS]; 
 
     // villsa [STRIFE] look up key
-    if(gamekeydown[key_lookup])
+    if(gamekeydown[key_lookup] || (joylook < 0 && joystick_look_sensitivity))
         cmd->buttons2 |= BT2_LOOKUP;
 
     // villsa [STRIFE] look down key
-    if(gamekeydown[key_lookdown])
+    if(gamekeydown[key_lookdown] || (joylook > 0 && joystick_look_sensitivity))
         cmd->buttons2 |= BT2_LOOKDOWN;
 
     // villsa [STRIFE] inventory use key
@@ -386,7 +395,8 @@ void G_BuildTiccmd (ticcmd_t* cmd, int maketic)
     speed = key_speed >= NUMKEYS
          || joybspeed >= MAX_JOY_BUTTONS
          || gamekeydown[key_speed] 
-         || joybuttons[joybspeed];
+         || joybuttons[joybspeed]
+         || mousebuttons[mousebspeed];
  
     forward = side = 0;
 
@@ -403,7 +413,9 @@ void G_BuildTiccmd (ticcmd_t* cmd, int maketic)
     if (joyxmove < 0
         || joyxmove > 0  
         || gamekeydown[key_right]
-        || gamekeydown[key_left]) 
+        || gamekeydown[key_left]
+        || mousebuttons[mousebturnright]
+        || mousebuttons[mousebturnleft])
         turnheld += ticdup; 
     else 
         turnheld = 0; 
@@ -416,32 +428,53 @@ void G_BuildTiccmd (ticcmd_t* cmd, int maketic)
     // let movement keys cancel each other out
     if (strafe) 
     { 
-        if (gamekeydown[key_right]) 
+        if (gamekeydown[key_right] || mousebuttons[mousebturnright])
         {
             // fprintf(stderr, "strafe right\n");
             side += sidemove[speed]; 
         }
-        if (gamekeydown[key_left]) 
+        if (gamekeydown[key_left] || mousebuttons[mousebturnleft])
         {
             //	fprintf(stderr, "strafe left\n");
             side -= sidemove[speed]; 
         }
-        if (joyxmove > 0) 
-            side += sidemove[speed]; 
-        if (joyxmove < 0) 
-            side -= sidemove[speed]; 
+        if (use_analog && joyxmove)
+        {
+            joyxmove = joyxmove * joystick_move_sensitivity / 10;
+            joyxmove = (joyxmove > FRACUNIT) ? FRACUNIT : joyxmove;
+            joyxmove = (joyxmove < -FRACUNIT) ? -FRACUNIT : joyxmove;
+            side += FixedMul(sidemove[speed], joyxmove);
+        }
+        else if (joystick_move_sensitivity)
+        {
+            if (joyxmove > 0)
+                side += sidemove[speed];
+            if (joyxmove < 0)
+                side -= sidemove[speed];
+        }
 
     } 
     else 
     { 
-        if (gamekeydown[key_right]) 
+        if (gamekeydown[key_right] || mousebuttons[mousebturnright])
             cmd->angleturn -= angleturn[tspeed]; 
-        if (gamekeydown[key_left]) 
+        if (gamekeydown[key_left] || mousebuttons[mousebturnleft])
             cmd->angleturn += angleturn[tspeed]; 
-        if (joyxmove > 0) 
-            cmd->angleturn -= angleturn[tspeed]; 
-        if (joyxmove < 0) 
-            cmd->angleturn += angleturn[tspeed]; 
+        if (use_analog && joyxmove)
+        {
+            // Cubic response curve allows for finer control when stick
+            // deflection is small.
+            joyxmove = FixedMul(FixedMul(joyxmove, joyxmove), joyxmove);
+            joyxmove = joyxmove * joystick_turn_sensitivity / 10;
+            cmd->angleturn -= FixedMul(angleturn[1], joyxmove);
+        }
+        else if (joystick_turn_sensitivity)
+        {
+            if (joyxmove > 0)
+                cmd->angleturn -= angleturn[tspeed];
+            if (joyxmove < 0)
+                cmd->angleturn += angleturn[tspeed];
+        }
     } 
 
     if (gamekeydown[key_up]) 
@@ -455,27 +488,49 @@ void G_BuildTiccmd (ticcmd_t* cmd, int maketic)
         forward -= forwardmove[speed]; 
     }
 
-    if (joyymove < 0) 
-        forward += forwardmove[speed]; 
-    if (joyymove > 0) 
-        forward -= forwardmove[speed]; 
+    if (use_analog && joyymove)
+    {
+        joyymove = joyymove * joystick_move_sensitivity / 10;
+        joyymove = (joyymove > FRACUNIT) ? FRACUNIT : joyymove;
+        joyymove = (joyymove < -FRACUNIT) ? FRACUNIT : joyymove;
+        forward -= FixedMul(forwardmove[speed], joyymove);
+    }
+    else if (joystick_move_sensitivity)
+    {
+        if (joyymove < 0)
+            forward += forwardmove[speed];
+        if (joyymove > 0)
+            forward -= forwardmove[speed];
+    }
 
     if (gamekeydown[key_strafeleft]
      || joybuttons[joybstrafeleft]
-     || mousebuttons[mousebstrafeleft]
-     || joystrafemove < 0)
+     || mousebuttons[mousebstrafeleft])
     {
         side -= sidemove[speed];
     }
 
     if (gamekeydown[key_straferight]
      || joybuttons[joybstraferight]
-     || mousebuttons[mousebstraferight]
-     || joystrafemove > 0)
+     || mousebuttons[mousebstraferight])
     {
         side += sidemove[speed]; 
     }
 
+    if (use_analog && joystrafemove)
+    {
+        joystrafemove = joystrafemove * joystick_move_sensitivity / 10;
+        joystrafemove = (joystrafemove > FRACUNIT) ? FRACUNIT : joystrafemove;
+        joystrafemove = (joystrafemove < -FRACUNIT) ? -FRACUNIT : joystrafemove;
+        side += FixedMul(sidemove[speed], joystrafemove);
+    }
+    else if (joystick_move_sensitivity)
+    {
+        if (joystrafemove < 0)
+            side -= sidemove[speed];
+        if (joystrafemove > 0)
+            side += sidemove[speed];
+    }
     // buttons
     cmd->chatchar = HU_dequeueChatChar(); 
 
@@ -698,7 +753,7 @@ void G_DoLoadLevel (void)
     // clear cmd building stuff
 
     memset (gamekeydown, 0, sizeof(gamekeydown));
-    joyxmove = joyymove = joystrafemove = 0;
+    joyxmove = joyymove = joystrafemove = joylook = 0;
     mousex = mousey = 0;
     sendpause = sendsave = paused = false;
     memset(mousearray, 0, sizeof(mousearray));
@@ -879,6 +934,7 @@ boolean G_Responder (event_t* ev)
         joyxmove = ev->data2; 
         joyymove = ev->data3; 
         joystrafemove = ev->data4;
+        joylook = ev->data5;
         return true;    // eat events 
 
     default: 
@@ -1363,8 +1419,6 @@ void G_ScreenShot (void)
 //
 // G_DoCompleted 
 //
-//boolean         secretexit; 
-extern char*	pagename; 
 
 //
 // G_RiftExitLevel
@@ -1653,8 +1707,6 @@ void G_ReadCurrent(const char *path)
 // G_InitFromSavegame
 // Can be called by the startup code or the menu task. 
 //
-extern boolean setsizeneeded;
-void R_ExecuteSetViewSize (void);
 
 char	savename[256];
 
@@ -1676,7 +1728,7 @@ void G_DoLoadGame (boolean userload)
 
     gameaction = ga_nothing;
 
-    save_stream = fopen(loadpath, "rb");
+    save_stream = M_fopen(loadpath, "rb");
 
     // [STRIFE] If the file does not exist, G_DoLoadLevel is called.
     if (save_stream == NULL)
@@ -1822,7 +1874,7 @@ void G_DoSaveGame (char *path)
     // This prevents an existing savegame from being overwritten by 
     // a corrupted one, or if a savegame buffer overrun occurs.
 
-    save_stream = fopen(temp_savegame_file, "wb");
+    save_stream = M_fopen(temp_savegame_file, "wb");
 
     if (save_stream == NULL)
     {
@@ -1856,8 +1908,8 @@ void G_DoSaveGame (char *path)
     // Now rename the temporary savegame file to the actual savegame
     // file, overwriting the old savegame if there was one there.
 
-    remove(savegame_file);
-    rename(temp_savegame_file, savegame_file);
+    M_remove(savegame_file);
+    M_rename(temp_savegame_file, savegame_file);
     
     // haleyjd: free the savegame_file path
     Z_Free(savegame_file);
@@ -1931,7 +1983,7 @@ G_InitNew
 ( skill_t       skill,
   int           map ) 
 { 
-    char *skytexturename;
+    const char *skytexturename;
     int             i; 
 
     if (paused) 
@@ -2184,7 +2236,7 @@ void G_WriteDemoTiccmd (ticcmd_t* cmd)
 // 
 // [STRIFE] Verified unmodified
 //
-void G_RecordDemo (char* name)
+void G_RecordDemo (const char* name)
 {
     size_t demoname_size;
     int             i;
@@ -2256,14 +2308,14 @@ void G_BeginRecording (void)
 // G_PlayDemo 
 //
 
-char*	defdemoname; 
+const char	*defdemoname;
  
 //
 // G_DeferedPlayDemo
 //
 // [STRIFE] Verified unmodified
 //
-void G_DeferedPlayDemo (char* name) 
+void G_DeferedPlayDemo(const char *name)
 { 
     defdemoname = name; 
     gameaction = ga_playdemo; 
@@ -2271,7 +2323,7 @@ void G_DeferedPlayDemo (char* name)
 
 // Generate a string describing a demo version
 // [STRIFE] Modified to handle the one and only Strife demo version.
-static char *DemoVersionDescription(int version)
+static const char *DemoVersionDescription(int version)
 {
     static char resultbuf[16];
  
@@ -2323,14 +2375,14 @@ void G_DoPlayDemo (void)
     */
     else
     {
-        char *message = "Demo is from a different game version!\n"
-                        "(read %i, should be %i)\n"
-                        "\n"
-                        "*** You may need to upgrade your version "
-                            "of Strife to v1.1 or later. ***\n"
-                        "    See: https://www.doomworld.com/classicdoom"
-                                  "/info/patches.php\n"
-                        "    This appears to be %s.";
+        const char *message = "Demo is from a different game version!\n"
+                              "(read %i, should be %i)\n"
+                              "\n"
+                              "*** You may need to upgrade your version "
+                                  "of Strife to v1.1 or later. ***\n"
+                              "    See: https://www.doomworld.com/classicdoom"
+                                        "/info/patches.php\n"
+                              "    This appears to be %s.";
 
         I_Error(message, demoversion, STRIFE_VERSION,
                          DemoVersionDescription(demoversion));

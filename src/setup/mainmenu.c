@@ -181,7 +181,7 @@ static void LaunchDoom(void *unused1, void *unused2)
 
 static txt_button_t *GetLaunchButton(void)
 {
-    char *label;
+    const char *label;
 
     switch (gamemission)
     {
@@ -216,30 +216,27 @@ void MainMenu(void)
     TXT_SetWindowHelpURL(window, WINDOW_HELP_URL);
 
     TXT_AddWidgets(window,
-          TXT_NewButton2("Configure Display",
-                         (TxtWidgetSignalFunc) ConfigDisplay, NULL),
-          TXT_NewButton2("Configure Sound",
-                         (TxtWidgetSignalFunc) ConfigSound, NULL),
-          TXT_NewButton2("Configure Keyboard",
-                         (TxtWidgetSignalFunc) ConfigKeyboard, NULL),
-          TXT_NewButton2("Configure Mouse",
-                         (TxtWidgetSignalFunc) ConfigMouse, NULL),
-          TXT_NewButton2("Configure Gamepad/Joystick",
-                         (TxtWidgetSignalFunc) ConfigJoystick, NULL),
-          TXT_NewButton2("Compatibility",
-                         (TxtWidgetSignalFunc) CompatibilitySettings, NULL),
-          NULL);
-
-    TXT_AddWidgets(window,
-          GetLaunchButton(),
-          TXT_NewStrut(0, 1),
-          TXT_NewButton2("Start a Network Game", 
-                         (TxtWidgetSignalFunc) StartMultiGame, NULL),
-          TXT_NewButton2("Join a Network Game", 
-                         (TxtWidgetSignalFunc) JoinMultiGame, NULL),
-          TXT_NewButton2("Multiplayer Configuration", 
-                         (TxtWidgetSignalFunc) MultiplayerConfig, NULL),
-          NULL);
+        TXT_NewButton2("Configure Display",
+                       (TxtWidgetSignalFunc) ConfigDisplay, NULL),
+        TXT_NewButton2("Configure Sound",
+                       (TxtWidgetSignalFunc) ConfigSound, NULL),
+        TXT_NewButton2("Configure Keyboard",
+                       (TxtWidgetSignalFunc) ConfigKeyboard, NULL),
+        TXT_NewButton2("Configure Mouse",
+                       (TxtWidgetSignalFunc) ConfigMouse, NULL),
+        TXT_NewButton2("Configure Gamepad/Joystick",
+                       (TxtWidgetSignalFunc) ConfigJoystick, NULL),
+        TXT_NewButton2("Compatibility",
+                       (TxtWidgetSignalFunc) CompatibilitySettings, NULL),
+        GetLaunchButton(),
+        TXT_NewStrut(0, 1),
+        TXT_NewButton2("Start a Network Game",
+                       (TxtWidgetSignalFunc) StartMultiGame, NULL),
+        TXT_NewButton2("Join a Network Game",
+                       (TxtWidgetSignalFunc) JoinMultiGame, NULL),
+        TXT_NewButton2("Multiplayer Configuration",
+                       (TxtWidgetSignalFunc) MultiplayerConfig, NULL),
+        NULL);
 
     quit_action = TXT_NewWindowAction(KEY_ESCAPE, "Quit");
     warp_action = TXT_NewWindowAction(KEY_F2, "Warp");
@@ -265,6 +262,10 @@ static void InitConfig(void)
     SetPlayerNameDefault();
 
     M_LoadDefaults();
+
+    // Create and configure the music pack directory if it does not
+    // already exist.
+    M_SetMusicPackDir();
 }
 
 //
@@ -274,38 +275,14 @@ static void InitConfig(void)
 static void SetIcon(void)
 {
     SDL_Surface *surface;
-    Uint8 *mask;
-    int i;
 
-    // Generate the mask
-  
-    mask = malloc(setup_icon_w * setup_icon_h / 8);
-    memset(mask, 0, setup_icon_w * setup_icon_h / 8);
+    surface = SDL_CreateRGBSurfaceFrom((void *) setup_icon_data, setup_icon_w,
+                                       setup_icon_h, 32, setup_icon_w * 4,
+                                       0xffu << 24, 0xffu << 16,
+                                       0xffu << 8, 0xffu << 0);
 
-    for (i=0; i<setup_icon_w * setup_icon_h; ++i) 
-    {
-        if (setup_icon_data[i * 3] != 0x00
-         || setup_icon_data[i * 3 + 1] != 0x00
-         || setup_icon_data[i * 3 + 2] != 0x00)
-        {
-            mask[i / 8] |= 1 << (7 - i % 8);
-        }
-    }
-
-
-    surface = SDL_CreateRGBSurfaceFrom(setup_icon_data,
-                                       setup_icon_w,
-                                       setup_icon_h,
-                                       24,
-                                       setup_icon_w * 3,
-                                       0xff << 0,
-                                       0xff << 8,
-                                       0xff << 16,
-                                       0);
-
-    SDL_WM_SetIcon(surface, mask);
+    SDL_SetWindowIcon(TXT_SDLWindow, surface);
     SDL_FreeSurface(surface);
-    free(mask);
 }
 
 static void SetWindowTitle(void)
@@ -334,18 +311,14 @@ static void InitTextscreen(void)
         exit(-1);
     }
 
+    // Set Romero's "funky blue" color:
+    // <https://doomwiki.org/wiki/Romero_Blue>
+    TXT_SetColor(TXT_COLOR_BLUE, 0x04, 0x14, 0x40);
+
     SetIcon();
     SetWindowTitle();
 }
 
-// Restart the textscreen library.  Used when the video_driver variable
-// is changed.
-
-void RestartTextscreen(void)
-{
-    TXT_Shutdown();
-    InitTextscreen();
-}
 
 // 
 // Initialize and run the textscreen GUI.

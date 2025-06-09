@@ -19,6 +19,7 @@
 #include "txt_gui.h"
 #include "txt_io.h"
 #include "txt_main.h"
+#include "txt_utf8.h"
 #include "txt_window.h"
 
 static void TXT_SeparatorSizeCalc(TXT_UNCAST_ARG(separator))
@@ -29,7 +30,7 @@ static void TXT_SeparatorSizeCalc(TXT_UNCAST_ARG(separator))
     {
         // Minimum width is the string length + two spaces for padding
 
-        separator->widget.w = strlen(separator->label) + 2;
+        separator->widget.w = TXT_UTF8_Strlen(separator->label) + 2;
     }
     else
     {
@@ -53,7 +54,7 @@ static void TXT_SeparatorDrawer(TXT_UNCAST_ARG(separator))
     // to overlap the window borders.
 
     TXT_DrawSeparator(x-2, y, w + 4);
-    
+
     if (separator->label != NULL)
     {
         TXT_GotoXY(x, y);
@@ -72,7 +73,7 @@ static void TXT_SeparatorDestructor(TXT_UNCAST_ARG(separator))
     free(separator->label);
 }
 
-void TXT_SetSeparatorLabel(txt_separator_t *separator, char *label)
+void TXT_SetSeparatorLabel(txt_separator_t *separator, const char *label)
 {
     free(separator->label);
 
@@ -97,7 +98,7 @@ txt_widget_class_t txt_separator_class =
     NULL,
 };
 
-txt_separator_t *TXT_NewSeparator(char *label)
+txt_separator_t *TXT_NewSeparator(const char *label)
 {
     txt_separator_t *separator;
 

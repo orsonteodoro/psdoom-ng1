@@ -36,9 +36,8 @@ typedef struct
     int handle;
 } posix_wad_file_t;
 
-extern wad_file_class_t posix_wad_file;
 
-static void MapFile(posix_wad_file_t *wad, char *filename)
+static void MapFile(posix_wad_file_t *wad, const char *filename)
 {
     void *result;
     int protection;
@@ -60,12 +59,14 @@ static void MapFile(posix_wad_file_t *wad, char *filename)
                   protection, flags, 
                   wad->handle, 0);
 
-    wad->wad.mapped = result;
-
-    if (result == NULL)
+    if (result == NULL || result == (void *)-1)
     {
         fprintf(stderr, "W_POSIX_OpenFile: Unable to mmap() %s - %s\n",
                         filename, strerror(errno));
+    }
+    else
+    {
+        wad->wad.mapped = result;
     }
 }
 
@@ -74,7 +75,7 @@ unsigned int GetFileLength(int handle)
     return lseek(handle, 0, SEEK_END);
 }
    
-static wad_file_t *W_POSIX_OpenFile(char *path)
+static wad_file_t *W_POSIX_OpenFile(const char *path)
 {
     posix_wad_file_t *result;
     int handle;
@@ -92,6 +93,7 @@ static wad_file_t *W_POSIX_OpenFile(char *path)
     result->wad.file_class = &posix_wad_file;
     result->wad.length = GetFileLength(handle);
     result->wad.path = M_StringDuplicate(path);
+    result->wad.mapped = NULL;
     result->handle = handle;
 
     // Try to map the file into memory with mmap:
@@ -110,7 +112,11 @@ static void W_POSIX_CloseFile(wad_file_t *wad)
     // If mapped, unmap it.
 
     // Close the file
-  
+
+    if (posix_wad->wad.mapped)
+    {
+        munmap(posix_wad->wad.mapped, posix_wad->wad.length);
+    }
     close(posix_wad->handle);
     Z_Free(posix_wad);
 }

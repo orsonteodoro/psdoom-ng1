@@ -682,7 +682,14 @@ void P_RespawnSpecials (void)
 	if (mthing->type == mobjinfo[i].doomednum)
 	    break;
     }
-    
+
+    if (i >= NUMMOBJTYPES)
+    {
+        I_Error("P_RespawnSpecials: Failed to find mobj type with doomednum "
+                "%d when respawning thing. This would cause a buffer overrun "
+                "in vanilla Doom", mthing->type);
+    }
+
     // spawn it
     if (mobjinfo[i].flags & MF_SPAWNCEILING)
 	z = ONCEILINGZ;
@@ -828,6 +835,7 @@ mobj_t* P_SpawnMapThing (mapthing_t* mthing, boolean is_pid_mobj)
     {
 	// save spots for respawning in network games
 	playerstarts[mthing->type-1] = *mthing;
+	playerstartsingame[mthing->type-1] = true;
 	if (!deathmatch)
 	    P_SpawnPlayer (mthing);
 
@@ -839,7 +847,7 @@ mobj_t* P_SpawnMapThing (mapthing_t* mthing, boolean is_pid_mobj)
 // *** PID END ***
     }
 
-    // check for apropriate skill level
+    // check for appropriate skill level
     if (!netgame && (mthing->options & 16) )
 // *** PID BEGIN ***
 // Return NULL here.
@@ -853,7 +861,11 @@ mobj_t* P_SpawnMapThing (mapthing_t* mthing, boolean is_pid_mobj)
     else if (gameskill == sk_nightmare)
 	bit = 4;
     else
-	bit = 1<<(gameskill-1);
+        // avoid undefined behavior (left shift by negative value and rhs too big)
+        // by accurately emulating what doom.exe did: reduce mod 32.
+        // For more details check:
+        // https://github.com/chocolate-doom/chocolate-doom/issues/1677
+        bit = (int) (1U << ((gameskill - 1) & 0x1F));
 
 // *** PID BEGIN ***
 //bug: Code here does not spawn monsters for psdoom
@@ -939,7 +951,6 @@ mobj_t* P_SpawnMapThing (mapthing_t* mthing, boolean is_pid_mobj)
 //
 // P_SpawnPuff
 //
-extern fixed_t attackrange;
 
 void
 P_SpawnPuff

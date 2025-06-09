@@ -2,42 +2,18 @@ AUX_DIST_GEN =                          \
         $(ac_aux_dir)/install-sh        \
         $(ac_aux_dir)/missing
 
-MSVC_FILES=                             \
-        msvc/chocolate.sln              \
-        msvc/config.h                   \
-        msvc/doom.vcproj                \
-        msvc/heretic.vcproj             \
-        msvc/hexen.vcproj               \
-        msvc/strife.vcproj              \
-        msvc/inttypes.h                 \
-        msvc/libopl.vcproj              \
-        msvc/libpcsound.vcproj          \
-        msvc/libtextscreen.vcproj       \
-        msvc/README                     \
-        msvc/server.vcproj              \
-        msvc/setup.vcproj               \
-        msvc/stdint.h                   \
-        msvc/win_opendir.c              \
-        msvc/win_opendir.h              \
-        msvc/win32.rc
-
-CODEBLOCKS_FILES=                              \
-        codeblocks/chocolate.workspace         \
-        codeblocks/config.h                    \
-        codeblocks/doom.cbp                    \
-        codeblocks/game-res.rc                 \
-        codeblocks/heretic.cbp                 \
-        codeblocks/hexen.cbp                   \
-        codeblocks/strife.cbp                  \
-        codeblocks/libopl.cbp                  \
-        codeblocks/libpcsound.cbp              \
-        codeblocks/libtextscreen.cbp           \
-        codeblocks/README                      \
-        codeblocks/server.cbp                  \
-        codeblocks/setup.cbp                   \
-        codeblocks/setup-res.rc
+CMAKE_FILES=                                   \
+        CMakeLists.txt                         \
+        cmake/FindSDL2.cmake                   \
+        cmake/FindSDL2_mixer.cmake             \
+        cmake/FindSDL2_net.cmake               \
+        cmake/FindFluidSynth.cmake             \
+        cmake/Findm.cmake                      \
+        cmake/FindSampleRate.cmake             \
+        cmake/config.h.cin
 
 DOC_FILES=                              \
+        COPYING.md                      \
         README.md                       \
         README.Music.md                 \
         NEWS.md                         \
@@ -46,15 +22,16 @@ DOC_FILES=                              \
 
 EXTRA_DIST=                             \
         $(AUX_DIST_GEN)                 \
-        $(MSVC_FILES)                   \
-        $(CODEBLOCKS_FILES)             \
+        $(CMAKE_FILES)                  \
         $(DOC_FILES)                    \
         NOT-BUGS.md                     \
         README.Strife.md                \
         .lvimrc                         \
         HACKING.md                      \
         TODO.md                         \
-        rpm.spec
+        rpm.spec                        \
+        win32/win_opendir.c             \
+        win32/win_opendir.h
 
 PSDO0M_DOC_FILES=                       \
         CHANGELOG.psdoom-ng             \
@@ -86,11 +63,13 @@ SUBDIRS=textscreen opl pcsound data src man
 
 DIST_SUBDIRS=pkg $(SUBDIRS)
 
-if HAVE_PYTHON
+if HAVE_DOC
 
 INSTALL : man/INSTALL.template man/simplecpp
-	./man/simplecpp -DDOOM -DHERETIC -DHEXEN -DSTRIFE \
-	                < man/INSTALL.template > $@
+	$(srcdir)/man/simplecpp -DDOOM -DHERETIC -DHEXEN -DSTRIFE \
+            -DLONG_GAME_NAME="@PACKAGE_SHORTNAME@ Doom" \
+            -DLONG_EXE_NAME="@PROGRAM_PREFIX@doom" \
+	                < $(srcdir)/man/INSTALL.template > $@
 
 endif
 

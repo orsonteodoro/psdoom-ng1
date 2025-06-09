@@ -15,11 +15,16 @@
 #ifndef TEXTSCREEN_H
 #define TEXTSCREEN_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "../src/doomkeys.h"
 #include "txt_main.h"
 
 #include "txt_button.h"
 #include "txt_checkbox.h"
+#include "txt_conditional.h"
 #include "txt_desktop.h"
 #include "txt_dropdown.h"
 #include "txt_fileselect.h"
@@ -34,6 +39,10 @@
 #include "txt_widget.h"
 #include "txt_window_action.h"
 #include "txt_window.h"
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* #ifndef TEXTSCREEN_H */
 

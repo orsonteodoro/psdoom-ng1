@@ -19,8 +19,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "doomfeatures.h"
-
 #include "txt_main.h"
 #include "txt_io.h"
 
@@ -32,6 +30,7 @@
 #include "deh_main.h"
 #include "d_iwad.h"
 #include "i_endoom.h"
+#include "i_input.h"
 #include "i_joystick.h"
 #include "i_sound.h"
 #include "i_system.h"
@@ -45,6 +44,9 @@
 #include "s_sound.h"
 #include "w_main.h"
 #include "v_video.h"
+#include "am_map.h"
+
+#include "heretic_icon.c"
 
 #define CT_KEY_GREEN    'g'
 #define CT_KEY_YELLOW   'y'
@@ -55,7 +57,7 @@
 #define STARTUP_WINDOW_Y 7
 
 GameMode_t gamemode = indetermined;
-char *gamedescription = "unknown";
+const char *gamedescription = "unknown";
 
 boolean nomonsters;             // checkparm of -nomonsters
 boolean respawnparm;            // checkparm of -respawn
@@ -72,7 +74,6 @@ static int graphical_startup = 1;
 static boolean using_graphical_startup;
 static boolean main_loop_started = false;
 boolean autostart;
-extern boolean automapactive;
 
 boolean advancedemo;
 
@@ -138,14 +139,9 @@ void DrawMessage(void)
 //
 //---------------------------------------------------------------------------
 
-void R_ExecuteSetViewSize(void);
-
-extern boolean finalestage;
 
 void D_Display(void)
 {
-    extern boolean askforquit;
-
     // Change the view size if needed
     if (setsizeneeded)
     {
@@ -239,10 +235,11 @@ void D_DoomLoop(void)
     {
         char filename[20];
         M_snprintf(filename, sizeof(filename), "debug%i.txt", consoleplayer);
-        debugfile = fopen(filename, "w");
+        debugfile = M_fopen(filename, "w");
     }
     I_GraphicsCheckCommandLine();
     I_SetGrabMouseCallback(D_GrabMouseCallback);
+    I_RegisterWindowIcon(heretic_icon_data, heretic_icon_w, heretic_icon_h);
     I_InitGraphics();
 
     main_loop_started = true;
@@ -270,9 +267,9 @@ void D_DoomLoop(void)
 ===============================================================================
 */
 
-int demosequence;
-int pagetic;
-char *pagename;
+static int demosequence;
+static int pagetic;
+static const char *pagename;
 
 
 /*
@@ -449,7 +446,6 @@ void D_CheckRecordFrom(void)
 
 char *iwadfile;
 
-char *basedefault = "heretic.cfg";
 
 void wadprintf(void)
 {
@@ -489,7 +485,7 @@ char smsg[80];                  // status bar line
 
 static int startup_line = STARTUP_WINDOW_Y;
 
-void hprintf(char *string)
+void hprintf(const char *string)
 {
     if (using_graphical_startup)
     {
@@ -522,7 +518,7 @@ void drawstatus(void)
     }
 }
 
-void status(char *string)
+static void status(const char *string)
 {
     if (using_graphical_startup)
     {
@@ -612,7 +608,7 @@ static void finishStartup(void)
 }
 
 char tmsg[300];
-void tprintf(char *msg, int initflag)
+void tprintf(const char *msg, int initflag)
 {
     printf("%s", msg);
 }
@@ -655,12 +651,11 @@ void InitThermo(int max)
 
 void D_BindVariables(void)
 {
-    extern int screenblocks;
-    extern int snd_Channels;
     int i;
 
     M_ApplyPlatformDefaults();
 
+    I_BindInputVariables();
     I_BindVideoVariables();
     I_BindJoystickVariables();
     I_BindSoundVariables();
@@ -678,9 +673,7 @@ void D_BindVariables(void)
     M_BindMenuControls();
     M_BindMapControls();
 
-#ifdef FEATURE_MULTIPLAYER
     NET_BindVariables();
-#endif
 
     M_BindIntVariable("mouse_sensitivity",      &mouseSensitivity);
     M_BindIntVariable("sfx_volume",             &snd_MaxVolume);
@@ -739,6 +732,7 @@ void D_DoomMain(void)
     I_AtExit(D_Endoom, false);
 
     //!
+    // @category game
     // @vanilla
     //
     // Disable monsters.
@@ -747,6 +741,7 @@ void D_DoomMain(void)
     nomonsters = M_ParmExists("-nomonsters");
 
     //!
+    // @category game
     // @vanilla
     //
     // Monsters respawn after being killed.
@@ -763,6 +758,7 @@ void D_DoomMain(void)
     ravpic = M_ParmExists("-ravpic");
 
     //!
+    // @category obscure
     // @vanilla
     //
     // Allow artifacts to be used when the run key is held down.
@@ -793,6 +789,7 @@ void D_DoomMain(void)
     }
 
     //!
+    // @category game
     // @arg <skill>
     // @vanilla
     //
@@ -808,6 +805,7 @@ void D_DoomMain(void)
     }
 
     //!
+    // @category game
     // @arg <n>
     // @vanilla
     //
@@ -823,6 +821,7 @@ void D_DoomMain(void)
     }
 
     //!
+    // @category game
     // @arg <x> <y>
     // @vanilla
     //
@@ -850,6 +849,7 @@ void D_DoomMain(void)
 #ifdef _WIN32
 
     //!
+    // @category obscure
     // @platform windows
     // @vanilla
     //
@@ -896,10 +896,25 @@ void D_DoomMain(void)
     D_AddFile(iwadfile);
     W_CheckCorrectIWAD(heretic);
 
-#ifdef FEATURE_DEHACKED
+    //!
+    // @category mod
+    //
+    // Disable auto-loading of .wad files.
+    //
+    if (!M_ParmExists("-noautoload"))
+    {
+        char *autoload_dir;
+        autoload_dir = M_GetAutoloadDir("heretic.wad");
+        if (autoload_dir != NULL)
+        {
+            DEH_AutoLoadPatches(autoload_dir);
+            W_AutoLoadWADs(autoload_dir);
+            free(autoload_dir);
+        }
+    }
+
     // Load dehacked patches specified on the command line.
     DEH_ParseCommandLine();
-#endif
 
     // Load PWAD files.
     W_ParseCommandLine();
@@ -960,6 +975,9 @@ void D_DoomMain(void)
         printf("Playing demo %s.\n", file);
     }
 
+    // Generate the WAD hash table.  Speed things up a bit.
+    W_GenerateHashTable();
+
     //!
     // @category demo
     //
@@ -1002,13 +1020,11 @@ void D_DoomMain(void)
     }
 
     I_InitTimer();
-    I_InitSound(false);
+    I_InitSound(heretic);
     I_InitMusic();
 
-#ifdef FEATURE_MULTIPLAYER
     tprintf("NET_Init: Init network subsystem.\n", 1);
     NET_Init ();
-#endif
 
     D_ConnectNetGame();
 
@@ -1072,7 +1088,7 @@ void D_DoomMain(void)
     IncThermo();
 
 //
-// start the apropriate game based on parms
+// start the appropriate game based on params
 //
 
     D_CheckRecordFrom();
@@ -1108,6 +1124,7 @@ void D_DoomMain(void)
     }
 
     //!
+    // @category game
     // @arg <s>
     // @vanilla
     //

@@ -60,7 +60,7 @@ int		scaledviewwidth;
 int		viewheight;
 int		viewwindowx;
 int		viewwindowy; 
-byte*		ylookup[MAXHEIGHT]; 
+pixel_t*		ylookup[MAXHEIGHT];
 int		columnofs[MAXWIDTH]; 
 
 // Color tables for different players,
@@ -72,7 +72,7 @@ byte		translations[3][256];
 // Backing buffer containing the bezel drawn around the screen and 
 // surrounding background.
 
-static byte *background_buffer = NULL;
+static pixel_t *background_buffer = NULL;
 
 
 //
@@ -102,7 +102,7 @@ int			dccount;
 void R_DrawColumn (void) 
 { 
     int			count; 
-    byte*		dest; 
+    pixel_t*		dest;
     fixed_t		frac;
     fixed_t		fracstep;	 
  
@@ -208,8 +208,8 @@ void R_DrawColumn (void)
 void R_DrawColumnLow (void) 
 { 
     int			count; 
-    byte*		dest; 
-    byte*		dest2;
+    pixel_t*		dest;
+    pixel_t*		dest2;
     fixed_t		frac;
     fixed_t		fracstep;	 
     int                 x;
@@ -283,9 +283,7 @@ int	fuzzpos = 0;
 void R_DrawFuzzColumn (void) 
 { 
     int			count; 
-    byte*		dest; 
-    fixed_t		frac;
-    fixed_t		fracstep;	 
+    pixel_t*		dest;
 
     // Adjust borders. Low... 
     if (!dc_yl) 
@@ -312,10 +310,6 @@ void R_DrawFuzzColumn (void)
     
     dest = ylookup[dc_yl] + columnofs[dc_x];
 
-    // Looks familiar.
-    fracstep = dc_iscale; 
-    frac = dc_texturemid + (dc_yl-centery)*fracstep; 
-
     // Looks like an attempt at dithering,
     //  using the colormap #6 (of 0-31, a bit
     //  brighter than average).
@@ -332,8 +326,6 @@ void R_DrawFuzzColumn (void)
 	    fuzzpos = 0;
 	
 	dest += SCREENWIDTH;
-
-	frac += fracstep; 
     } while (count--); 
 } 
 
@@ -342,10 +334,8 @@ void R_DrawFuzzColumn (void)
 void R_DrawFuzzColumnLow (void) 
 { 
     int			count; 
-    byte*		dest; 
-    byte*		dest2; 
-    fixed_t		frac;
-    fixed_t		fracstep;	 
+    pixel_t*		dest;
+    pixel_t*		dest2;
     int x;
 
     // Adjust borders. Low... 
@@ -378,10 +368,6 @@ void R_DrawFuzzColumnLow (void)
     dest = ylookup[dc_yl] + columnofs[x];
     dest2 = ylookup[dc_yl] + columnofs[x+1];
 
-    // Looks familiar.
-    fracstep = dc_iscale; 
-    frac = dc_texturemid + (dc_yl-centery)*fracstep; 
-
     // Looks like an attempt at dithering,
     //  using the colormap #6 (of 0-31, a bit
     //  brighter than average).
@@ -400,8 +386,6 @@ void R_DrawFuzzColumnLow (void)
 	
 	dest += SCREENWIDTH;
 	dest2 += SCREENWIDTH;
-
-	frac += fracstep; 
     } while (count--); 
 } 
  
@@ -424,7 +408,7 @@ byte*	translationtables;
 void R_DrawTranslatedColumn (void) 
 { 
     int			count; 
-    byte*		dest; 
+    pixel_t*		dest;
     fixed_t		frac;
     fixed_t		fracstep;	 
  
@@ -468,8 +452,8 @@ void R_DrawTranslatedColumn (void)
 void R_DrawTranslatedColumnLow (void) 
 { 
     int			count; 
-    byte*		dest; 
-    byte*		dest2; 
+    pixel_t*		dest;
+    pixel_t*		dest2;
     fixed_t		frac;
     fixed_t		fracstep;	 
     int                 x;
@@ -590,7 +574,7 @@ int			dscount;
 void R_DrawSpan (void) 
 { 
     unsigned int position, step;
-    byte *dest;
+    pixel_t *dest;
     int count;
     int spot;
     unsigned int xtemp, ytemp;
@@ -649,7 +633,7 @@ void R_DrawSpan (void)
 
     byte*	source;
     byte*	colormap;
-    byte*	dest;
+    pixel_t*	dest;
     
     unsigned	count;
     usingned	spot; 
@@ -720,7 +704,7 @@ void R_DrawSpanLow (void)
 {
     unsigned int position, step;
     unsigned int xtemp, ytemp;
-    byte *dest;
+    pixel_t *dest;
     int count;
     int spot;
 
@@ -812,18 +796,18 @@ R_InitBuffer
 void R_FillBackScreen (void) 
 { 
     byte*	src;
-    byte*	dest; 
+    pixel_t*	dest;
     int		x;
     int		y; 
     patch_t*	patch;
 
     // DOOM border patch.
-    char       *name1 = DEH_String("FLOOR7_2");
+    const char *name1 = DEH_String("FLOOR7_2");
 
     // DOOM II border patch.
-    char *name2 = DEH_String("GRNROCK");
+    const char *name2 = DEH_String("GRNROCK");
 
-    char *name;
+    const char *name;
 
     // If we are running full screen, there is no need to do any of this,
     // and the background buffer can be freed if it was previously in use.

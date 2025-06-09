@@ -22,6 +22,7 @@
 #include "txt_gui.h"
 #include "txt_io.h"
 #include "txt_main.h"
+#include "txt_utf8.h"
 #include "txt_window.h"
 
 static void TXT_WindowActionSizeCalc(TXT_UNCAST_ARG(action))
@@ -34,24 +35,24 @@ static void TXT_WindowActionSizeCalc(TXT_UNCAST_ARG(action))
     // Width is label length, plus key description length, plus '='
     // and two surrounding spaces.
 
-    action->widget.w = strlen(action->label) + strlen(buf) + 3;
+    action->widget.w = TXT_UTF8_Strlen(action->label)
+                     + TXT_UTF8_Strlen(buf) + 3;
     action->widget.h = 1;
 }
 
 static void TXT_WindowActionDrawer(TXT_UNCAST_ARG(action))
 {
     TXT_CAST_ARG(txt_window_action_t, action);
+    int hovering;
     char buf[10];
 
     TXT_GetKeyDescription(action->key, buf, sizeof(buf));
 
-    if (TXT_HoveringOverWidget(action))
-    {
-        TXT_BGColor(TXT_COLOR_BLACK, 0);
-    }
+    hovering = TXT_HoveringOverWidget(action);
+    TXT_SetWidgetBG(action);
 
     TXT_DrawString(" ");
-    TXT_FGColor(TXT_COLOR_BRIGHT_GREEN);
+    TXT_FGColor(hovering ? TXT_COLOR_BRIGHT_WHITE : TXT_COLOR_BRIGHT_GREEN);
     TXT_DrawString(buf);
     TXT_FGColor(TXT_COLOR_BRIGHT_CYAN);
     TXT_DrawString("=");

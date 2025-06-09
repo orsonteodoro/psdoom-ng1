@@ -24,27 +24,27 @@
 #include "v_video.h"
 #include "i_swap.h"
 
+#include "d_main.h"
 #include "hu_lib.h"
 #include "r_local.h"
 #include "r_draw.h"
 #include "hu_stuff.h" // [STRIFE]
 
+#include "doomstat.h"
+
 // boolean : whether the screen is always erased
 #define noterased viewwindowx
 
-extern boolean	automapactive;	// in AM_map.c
-
-extern boolean D_PatchClipCallback(patch_t *patch, int x, int y); // [STRIFE]
 
 //
 // HUlib_drawYellowText
 //
 // haleyjd 20100918: [STRIFE] New function.
 //
-void HUlib_drawYellowText(int x, int y, char *text)
+void HUlib_drawYellowText(int x, int y, const char *text)
 {
     int start_x = x;
-    char *rover = text;
+    const char *rover = text;
     char c;
 
     while((c = *rover++))
@@ -309,8 +309,8 @@ void HUlib_addLineToSText(hu_stext_t* s)
 void
 HUlib_addMessageToSText
 ( hu_stext_t*	s,
-  char*		prefix,
-  char*		msg )
+  const char	*prefix,
+  const char	*msg )
 {
     HUlib_addLineToSText(s);
     if (prefix)

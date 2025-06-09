@@ -45,21 +45,21 @@ extern txt_widget_class_t txt_separator_class;
 /**
  * Create a new horizontal separator widget.
  *
- * @param label         Label to display on the separator.  If this is
- *                      set to NULL, no label is displayed.
+ * @param label         Label to display on the separator (UTF-8 format).
+ *                      If this is set to NULL, no label is displayed.
  * @return              The new separator widget.
  */
 
-txt_separator_t *TXT_NewSeparator(char *label);
+txt_separator_t *TXT_NewSeparator(const char *label);
 
 /**
  * Change the label on a separator.
  *
  * @param separator     The separator.
- * @param label         The new label.
+ * @param label         The new label (UTF-8 format).
  */
 
-void TXT_SetSeparatorLabel(txt_separator_t *separator, char *label);
+void TXT_SetSeparatorLabel(txt_separator_t *separator, const char *label);
 
 #endif /* #ifndef TXT_SEPARATOR_H */
 

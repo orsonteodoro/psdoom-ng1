@@ -28,10 +28,11 @@
 #include "txt_gui.h"
 #include "txt_io.h"
 #include "txt_joyaxis.h"
+#include "txt_utf8.h"
 
 #define JOYSTICK_AXIS_WIDTH 20
 
-static char *CalibrationLabel(txt_joystick_axis_t *joystick_axis)
+static const char *CalibrationLabel(txt_joystick_axis_t *joystick_axis)
 {
     switch (joystick_axis->config_stage)
     {
@@ -149,12 +150,12 @@ static boolean CalibrateAxis(txt_joystick_axis_t *joystick_axis)
 
     for (i = 0; i < SDL_JoystickNumAxes(joystick_axis->joystick); ++i)
     {
-       //if (bad_axis[i])
-       //{
-       //    continue;
-       //}
-
         axis_value = SDL_JoystickGetAxis(joystick_axis->joystick, i);
+
+        if (joystick_axis->bad_axis[i])
+        {
+            continue;
+        }
 
         if (abs(axis_value) > best_value)
         {
@@ -286,7 +287,6 @@ static int EventCallback(SDL_Event *event, TXT_UNCAST_ARG(joystick_axis))
     // joystick is being configured and which button the user is pressing.
     if (joystick_axis->config_stage == CONFIG_CENTER)
     {
-        joystick_index = event->jbutton.which;
         joystick_axis->config_button = event->jbutton.button;
         IdentifyBadAxes(joystick_axis);
 
@@ -300,7 +300,7 @@ static int EventCallback(SDL_Event *event, TXT_UNCAST_ARG(joystick_axis))
     // In subsequent stages, the user is asked to push in a specific
     // direction and press the button. They must push the same button
     // as they did before; this is necessary to support button axes.
-    if (event->jbutton.which == joystick_index
+    if (event->jbutton.which == SDL_JoystickInstanceID(joystick_axis->joystick)
      && event->jbutton.button == joystick_axis->config_button)
     {
         switch (joystick_axis->config_stage)
@@ -359,7 +359,7 @@ void TXT_ConfigureJoystickAxis(txt_joystick_axis_t *joystick_axis,
                                txt_joystick_axis_callback_t callback)
 {
     // Open the joystick first.
-    if (SDL_Init(SDL_INIT_JOYSTICK) < 0)
+    if (SDL_InitSubSystem(SDL_INIT_JOYSTICK) < 0)
     {
         return;
     }
@@ -413,6 +413,30 @@ void TXT_ConfigureJoystickAxis(txt_joystick_axis_t *joystick_axis,
     joystick_axis->callback = callback;
 }
 
+void TXT_ConfigureGamepadAxis(txt_joystick_axis_t *joystick_axis,
+                              int using_button,
+                              txt_joystick_axis_callback_t callback)
+{
+    // Build the prompt window.
+
+    joystick_axis->config_window = TXT_NewWindow("Configure axis");
+    TXT_SetTableColumns(joystick_axis->config_window, 2);
+    TXT_SetColumnWidths(joystick_axis->config_window, 10, 5);
+    TXT_AddWidgets(joystick_axis->config_window,
+                   TXT_NewCheckBox("Invert", joystick_axis->invert),
+                   TXT_TABLE_EMPTY,
+                   TXT_NewLabel("Dead zone"),
+                   TXT_NewSpinControl(joystick_axis->dead_zone, 10, 90),
+                   NULL);
+
+    TXT_SetWindowAction(joystick_axis->config_window, TXT_HORIZ_LEFT, NULL);
+    TXT_SetWindowAction(
+        joystick_axis->config_window, TXT_HORIZ_CENTER,
+        TXT_NewWindowEscapeAction(joystick_axis->config_window));
+    TXT_SetWindowAction(joystick_axis->config_window, TXT_HORIZ_RIGHT, NULL);
+    TXT_SetWidgetAlign(joystick_axis->config_window, TXT_HORIZ_CENTER);
+}
+
 static void TXT_JoystickAxisSizeCalc(TXT_UNCAST_ARG(joystick_axis))
 {
     TXT_CAST_ARG(txt_joystick_axis_t, joystick_axis);
@@ -461,7 +485,56 @@ static void TXT_JoystickAxisDrawer(TXT_UNCAST_ARG(joystick_axis))
 
     TXT_DrawString(buf);
 
-    for (i = strlen(buf); i < joystick_axis->widget.w; ++i)
+    for (i = TXT_UTF8_Strlen(buf); i < joystick_axis->widget.w; ++i)
+    {
+        TXT_DrawString(" ");
+    }
+}
+
+static void GetAxisDescription(int axis, char *buf, size_t buf_len)
+{
+    switch (axis)
+    {
+        case SDL_CONTROLLER_AXIS_INVALID:
+            M_StringCopy(buf, "(none)", sizeof(buf));
+            break;
+
+        case SDL_CONTROLLER_AXIS_LEFTX:
+            M_StringCopy(buf, "Left X", sizeof(buf));
+            break;
+
+        case SDL_CONTROLLER_AXIS_LEFTY:
+            M_StringCopy(buf, "Left Y", sizeof(buf));
+            break;
+
+        case SDL_CONTROLLER_AXIS_RIGHTX:
+            M_StringCopy(buf, "Right X", sizeof(buf));
+            break;
+
+        case SDL_CONTROLLER_AXIS_RIGHTY:
+            M_StringCopy(buf, "Right Y", sizeof(buf));
+            break;
+
+        default:
+            M_StringCopy(buf, "(unknown)", sizeof(buf));
+            break;
+    }
+}
+
+static void TXT_GamepadAxisDrawer(TXT_UNCAST_ARG(joystick_axis))
+{
+    TXT_CAST_ARG(txt_joystick_axis_t, joystick_axis);
+    char buf[JOYSTICK_AXIS_WIDTH + 1];
+    int i;
+
+    GetAxisDescription(*joystick_axis->axis, buf, sizeof(buf));
+
+    TXT_SetWidgetBG(joystick_axis);
+    TXT_FGColor(TXT_COLOR_BRIGHT_WHITE);
+
+    TXT_DrawString(buf);
+
+    for (i = TXT_UTF8_Strlen(buf); i < joystick_axis->widget.w; ++i)
     {
         TXT_DrawString(" ");
     }
@@ -489,6 +562,24 @@ static int TXT_JoystickAxisKeyPress(TXT_UNCAST_ARG(joystick_axis), int key)
     return 0;
 }
 
+static int TXT_GamepadAxisKeyPress(TXT_UNCAST_ARG(joystick_axis), int key)
+{
+    TXT_CAST_ARG(txt_joystick_axis_t, joystick_axis);
+
+    if (key == KEY_ENTER)
+    {
+        TXT_ConfigureGamepadAxis(joystick_axis, -1, NULL);
+        return 1;
+    }
+
+    if (key == KEY_BACKSPACE || key == KEY_DEL)
+    {
+        *joystick_axis->axis = -1;
+    }
+
+    return 0;
+}
+
 static void TXT_JoystickAxisMousePress(TXT_UNCAST_ARG(widget),
                                        int x, int y, int b)
 {
@@ -499,6 +590,19 @@ static void TXT_JoystickAxisMousePress(TXT_UNCAST_ARG(widget),
     if (b == TXT_MOUSE_LEFT)
     {
         TXT_JoystickAxisKeyPress(widget, KEY_ENTER);
+    }
+}
+
+static void TXT_GamepadAxisMousePress(TXT_UNCAST_ARG(widget), int x, int y,
+                                      int b)
+{
+    TXT_CAST_ARG(txt_joystick_axis_t, widget);
+
+    // Clicking is like pressing enter
+
+    if (b == TXT_MOUSE_LEFT)
+    {
+        TXT_GamepadAxisKeyPress(widget, KEY_ENTER);
     }
 }
 
@@ -513,16 +617,35 @@ txt_widget_class_t txt_joystick_axis_class =
     NULL,
 };
 
-txt_joystick_axis_t *TXT_NewJoystickAxis(int *axis, int *invert,
+txt_widget_class_t txt_gamepad_axis_class =
+{
+    TXT_AlwaysSelectable,
+    TXT_JoystickAxisSizeCalc,
+    TXT_GamepadAxisDrawer,
+    TXT_GamepadAxisKeyPress,
+    TXT_JoystickAxisDestructor,
+    TXT_GamepadAxisMousePress,
+    NULL,
+};
+
+txt_joystick_axis_t *TXT_NewJoystickAxis(int *axis, int *invert, int *dead_zone,
                                          txt_joystick_axis_direction_t dir)
 {
     txt_joystick_axis_t *joystick_axis;
 
     joystick_axis = malloc(sizeof(txt_joystick_axis_t));
 
-    TXT_InitWidget(joystick_axis, &txt_joystick_axis_class);
+    if (use_gamepad)
+    {
+        TXT_InitWidget(joystick_axis, &txt_gamepad_axis_class);
+    }
+    else
+    {
+        TXT_InitWidget(joystick_axis, &txt_joystick_axis_class);
+    }
     joystick_axis->axis = axis;
     joystick_axis->invert = invert;
+    joystick_axis->dead_zone = dead_zone;
     joystick_axis->dir = dir;
     joystick_axis->bad_axis = NULL;
 

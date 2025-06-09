@@ -21,6 +21,7 @@
 #ifdef _WIN32
 
 #include <stdio.h>
+#include <stdlib.h>
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -43,9 +44,8 @@ typedef struct
     HANDLE handle_map;
 } win32_wad_file_t;
 
-extern wad_file_class_t win32_wad_file;
 
-static void MapFile(win32_wad_file_t *wad, char *filename)
+static void MapFile(win32_wad_file_t *wad, const char *filename)
 {
     wad->handle_map = CreateFileMapping(wad->handle,
                                         NULL,
@@ -86,17 +86,20 @@ unsigned int GetFileLength(HANDLE handle)
     return result;
 }
    
-static wad_file_t *W_Win32_OpenFile(char *path)
+static wad_file_t *W_Win32_OpenFile(const char *path)
 {
     win32_wad_file_t *result;
-    wchar_t wpath[MAX_PATH + 1];
+    wchar_t *wpath = NULL;
     HANDLE handle;
 
     // Open the file:
 
-    MultiByteToWideChar(CP_OEMCP, 0,
-                        path, strlen(path) + 1,
-                        wpath, sizeof(wpath));
+    wpath = M_ConvertUtf8ToWide(path);
+
+    if (wpath == NULL)
+    {
+       return NULL;
+    }
 
     handle = CreateFileW(wpath,
                          GENERIC_READ,
@@ -105,6 +108,8 @@ static wad_file_t *W_Win32_OpenFile(char *path)
                          OPEN_EXISTING,
                          FILE_ATTRIBUTE_NORMAL,
                          NULL);
+
+    free(wpath);
 
     if (handle == INVALID_HANDLE_VALUE)
     {

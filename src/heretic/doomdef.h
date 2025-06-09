@@ -127,8 +127,11 @@ typedef enum
 ===============================================================================
 */
 
+
+struct thinker_s;
+
 // think_t is a function pointer to a routine to handle an actor
-typedef void (*think_t) ();
+typedef void (*think_t) (struct thinker_s *);
 
 typedef struct thinker_s
 {
@@ -290,7 +293,7 @@ typedef enum
     NUMPSPRITES
 } psprnum_t;
 
-typedef struct
+typedef struct pspdef_s
 {
     state_t *state;             // a NULL state means not active
     int tics;
@@ -302,7 +305,7 @@ typedef enum
     key_yellow,
     key_green,
     key_blue,
-    NUMKEYS
+    NUM_KEY_TYPES
 } keytype_t;
 
 typedef enum
@@ -439,7 +442,7 @@ typedef struct player_s
     int artifactCount;
     int inventorySlotNum;
     int powers[NUMPOWERS];
-    boolean keys[NUMKEYS];
+    boolean keys[NUM_KEY_TYPES];
     boolean backpack;
     signed int frags[MAXPLAYERS];       // kills of other players
     weapontype_t readyweapon;
@@ -453,7 +456,7 @@ typedef struct player_s
     int refire;                 // refired shots are less accurate
 
     int killcount, itemcount, secretcount;      // for intermission
-    char *message;              // hint messages
+    const char *message;        // hint messages
     int messageTics;            // counter for showing messages
     int damagecount, bonuscount;        // for screen flashing
     int flamecount;             // for flame thrower duration
@@ -508,6 +511,10 @@ extern boolean altpal;          // checkparm to use an alternate palette routine
 
 extern boolean cdrom;           // true if cd-rom mode active ("-cdrom")
 
+extern boolean noartiskip;      // whether shift-enter skips an artifact
+
+extern boolean viewactive;
+
 extern boolean deathmatch;      // only if started as net death
 
 extern boolean netgame;         // only true if >1 player
@@ -553,6 +560,7 @@ extern ticcmd_t *netcmds;
 extern mapthing_t *deathmatch_p;
 extern mapthing_t deathmatchstarts[10];
 extern mapthing_t playerstarts[MAXPLAYERS];
+extern boolean playerstartsingame[MAXPLAYERS];
 
 extern int mouseSensitivity;
 
@@ -565,6 +573,7 @@ extern skill_t startskill;
 extern int startepisode;
 extern int startmap;
 extern boolean autostart;
+extern boolean advancedemo;
 
 extern boolean testcontrols;
 extern int testcontrols_mousespeed;
@@ -586,9 +595,10 @@ extern int vanilla_demo_limit;
 //BASE LEVEL
 //----------
 void D_DoomMain(void);
+void CheckAbortStartup(void);
 void IncThermo(void);
 void InitThermo(int max);
-void tprintf(char *string, int initflag);
+void tprintf(const char *string, int initflag);
 // not a globally visible function, just included for source reference
 // calls all startup code
 // parses command line options
@@ -600,6 +610,9 @@ void D_DoomLoop(void);
 // manages timing and IO
 // calls all ?_Responder, ?_Ticker, and ?_Drawer functions
 // calls I_GetTime, I_StartFrame, and I_StartTic
+
+void D_StartTitle(void);
+
 
 //---------
 //SYSTEM IO
@@ -651,7 +664,7 @@ void G_DeferedInitNew(skill_t skill, int episode, int map);
 // can be called by the startup code or M_Responder
 // a normal game starts at map 1, but a warp test can start elsewhere
 
-void G_DeferedPlayDemo(char *demo);
+void G_DeferedPlayDemo(const char *demo);
 
 void G_LoadGame(char *name);
 // can be called by the startup code or M_Responder
@@ -666,7 +679,8 @@ void G_SaveGame(int slot, char *description);
 char *SV_Filename(int slot);
 void SV_Open(char *fileName);
 void SV_OpenRead(char *fileName);
-void SV_Close(char *fileName);
+void SV_WriteSaveGameEOF(void);
+void SV_Close(void);
 void SV_Write(void *buffer, int size);
 void SV_WriteByte(byte val);
 void SV_WriteWord(unsigned short val);
@@ -679,16 +693,22 @@ uint32_t SV_ReadLong(void);
 extern char *savegamedir;
 
 void G_RecordDemo(skill_t skill, int numplayers, int episode, int map,
-                  char *name);
+                  const char *name);
 // only called by startup code
 
 void G_PlayDemo(char *name);
 void G_TimeDemo(char *name);
+boolean G_CheckDemoStatus(void);
+void D_DoAdvanceDemo(void);
 
 void G_ExitLevel(void);
 void G_SecretExitLevel(void);
 
+void D_ProcessEvents(void);
+
 void G_WorldDone(void);
+
+void G_BuildTiccmd(ticcmd_t *cmd, int maketic);
 
 void G_Ticker(void);
 boolean G_Responder(event_t * ev);
@@ -698,6 +718,8 @@ void G_ScreenShot(void);
 //-----
 //PLAY
 //-----
+
+extern lumpinfo_t *maplumpinfo;
 
 void P_Ticker(void);
 // called by C_Ticker
@@ -751,10 +773,10 @@ void R_DrawTopBorder(void);
 void R_SetViewSize(int blocks, int detail);
 // called by M_Responder
 
-int R_FlatNumForName(char *name);
+int R_FlatNumForName(const char *name);
 
-int R_TextureNumForName(char *name);
-int R_CheckTextureNumForName(char *name);
+int R_TextureNumForName(const char *name);
+int R_CheckTextureNumForName(const char *name);
 // called by P_Ticker for switches and animations
 // returns the texture number for the texture name
 
@@ -801,6 +823,13 @@ void F_StartFinale(void);
 // STATUS BAR (SB_bar.c)
 //----------------------
 
+
+extern boolean inventory;
+extern int curpos;
+extern int inv_ptr;
+extern int playerkeys;
+
+
 void SB_Init(void);
 boolean SB_Responder(event_t * event);
 void SB_Ticker(void);
@@ -810,6 +839,7 @@ void SB_Drawer(void);
 // MENU (MN_menu.c)
 //-----------------
 
+extern boolean askforquit;
 extern boolean MenuActive;
 
 void MN_Init(void);
@@ -818,10 +848,10 @@ void MN_DeactivateMenu(void);
 boolean MN_Responder(event_t * event);
 void MN_Ticker(void);
 void MN_Drawer(void);
-void MN_DrTextA(char *text, int x, int y);
-int MN_TextAWidth(char *text);
-void MN_DrTextB(char *text, int x, int y);
-int MN_TextBWidth(char *text);
+void MN_DrTextA(const char *text, int x, int y);
+int MN_TextAWidth(const char *text);
+void MN_DrTextB(const char *text, int x, int y);
+int MN_TextBWidth(const char *text);
 
 #include "sounds.h"
 

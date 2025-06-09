@@ -21,6 +21,7 @@
 #include "txt_gui.h"
 #include "txt_io.h"
 #include "txt_main.h"
+#include "txt_utf8.h"
 #include "txt_window.h"
 
 static void TXT_RadioButtonSizeCalc(TXT_UNCAST_ARG(radiobutton))
@@ -29,7 +30,7 @@ static void TXT_RadioButtonSizeCalc(TXT_UNCAST_ARG(radiobutton))
 
     // Minimum width is the string length + right-side spaces for padding
 
-    radiobutton->widget.w = strlen(radiobutton->label) + 5;
+    radiobutton->widget.w = TXT_UTF8_Strlen(radiobutton->label) + 5;
     radiobutton->widget.h = 1;
 }
 
@@ -50,7 +51,7 @@ static void TXT_RadioButtonDrawer(TXT_UNCAST_ARG(radiobutton))
 
     if (*radiobutton->variable == radiobutton->value)
     {
-        TXT_DrawString("\x07");
+        TXT_DrawCodePageString("\x07");
     }
     else
     {
@@ -66,7 +67,7 @@ static void TXT_RadioButtonDrawer(TXT_UNCAST_ARG(radiobutton))
 
     TXT_DrawString(radiobutton->label);
 
-    for (i=strlen(radiobutton->label); i < w-5; ++i)
+    for (i=TXT_UTF8_Strlen(radiobutton->label); i < w-5; ++i)
     {
         TXT_DrawString(" ");
     }
@@ -120,7 +121,7 @@ txt_widget_class_t txt_radiobutton_class =
     NULL,
 };
 
-txt_radiobutton_t *TXT_NewRadioButton(char *label, int *variable, int value)
+txt_radiobutton_t *TXT_NewRadioButton(const char *label, int *variable, int value)
 {
     txt_radiobutton_t *radiobutton;
 
@@ -134,7 +135,7 @@ txt_radiobutton_t *TXT_NewRadioButton(char *label, int *variable, int value)
     return radiobutton;
 }
 
-void TXT_SetRadioButtonLabel(txt_radiobutton_t *radiobutton, char *value)
+void TXT_SetRadioButtonLabel(txt_radiobutton_t *radiobutton, const char *value)
 {
     free(radiobutton->label);
     radiobutton->label = strdup(value);

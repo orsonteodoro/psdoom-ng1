@@ -69,7 +69,6 @@ extern GameMode_t	gamemode;
 extern GameMission_t	gamemission;
 extern GameVersion_t    gameversion;
 extern GameVariant_t    gamevariant;
-extern char            *gamedescription;
 
 // Convenience macro.
 // 'gamemission' can be equal to pack_chex or pack_hacx, but these are
@@ -240,7 +239,7 @@ extern  mapthing_t*	deathmatch_p;
 
 // Player spawn spots.
 extern  mapthing_t      playerstarts[MAXPLAYERS];
-
+extern  boolean         playerstartsingame[MAXPLAYERS];
 // Intermission stats.
 // Parameters for world map / intermission.
 extern  wbstartstruct_t		wminfo;	
@@ -256,8 +255,7 @@ extern  wbstartstruct_t		wminfo;
 //
 
 // File handling stuff.
-extern  char *          savegamedir;
-extern	char		basedefault[1024];
+extern  char        *savegamedir;
 
 // if true, load all graphics at level load
 extern  boolean         precache;

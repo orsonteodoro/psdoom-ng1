@@ -113,7 +113,7 @@ byte *rejectmatrix;             // for fast sight rejection
 // PRIVATE DATA DEFINITIONS ------------------------------------------------
 
 static mapInfo_t MapInfo[99];
-static char *MapCmdNames[] = {
+static const char *MapCmdNames[] = {
     "SKY1",
     "SKY2",
     "DOUBLESKY",
@@ -655,6 +655,7 @@ void P_GroupLines(void)
 
 //=============================================================================
 
+lumpinfo_t *maplumpinfo;
 
 /*
 =================
@@ -694,6 +695,9 @@ void P_SetupLevel(int episode, int map, int playermask, skill_t skill)
 
     M_snprintf(lumpname, sizeof(lumpname), "MAP%02d", map);
     lumpnum = W_GetNumForName(lumpname);
+
+    maplumpinfo = lumpinfo[lumpnum];
+
     //
     // Begin processing map lumps
     // Note: most of this ordering is important
@@ -796,7 +800,7 @@ static void InitMapInfo(void)
     int mcmdValue;
     mapInfo_t *info;
     char songMulch[10];
-    char *default_sky_name = DEFAULT_SKY_NAME;
+    const char *default_sky_name = DEFAULT_SKY_NAME;
 
     mapMax = 1;
 

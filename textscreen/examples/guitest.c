@@ -30,8 +30,11 @@ enum
     RADIO_VALUE_MUSHROOM,
     RADIO_VALUE_SNAKE,
 };
-char *extensions[] = { "wad", "lmp", "txt", NULL };
-char *radio_values[] = { "Badger", "Mushroom", "Snake" };
+
+// also put some crazy extensions to test the escape function. a"b"c"""dd
+const char *extensions[] = { "wad", "lmp", "txt", "a\"b\"c\"\"\"dd", "",
+     "\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"", NULL };
+const char *radio_values[] = { "Badger", "Mushroom", "Snake" };
 char *textbox_value = NULL;
 int numbox_value = 0;
 int radiobutton_value;
@@ -83,6 +86,32 @@ void CloseWindow(TXT_UNCAST_ARG(button), void *user_data)
     TXT_CloseWindow(firstwin);
 }
 
+void UnicodeWindow(TXT_UNCAST_ARG(widget), void *user_data)
+{
+    static const char *strings[] = {
+        "lunedì", "martedì", "mercoledì", "giovedì",
+        "venerdì", "sabato", "domenica",
+    };
+    static int var1, var2;
+    txt_window_t *window;
+
+    window = TXT_NewWindow("Questo è in Italiano");
+
+    TXT_AddWidgets(window,
+                   TXT_NewButton("Questo è un tasto"),
+                   TXT_NewCheckBox("Questo è un checkbox", &var1),
+                   TXT_NewDropdownList(&var2, strings, 7),
+                   TXT_NewSeparator("Questo è un separatore"),
+                   TXT_NewLabel("Leggi questo, è pieno di\n"
+                                "informazioni interessanti"),
+                   TXT_NewRadioButton("Ma questo non è un radio??",
+                                      &var1, 0),
+                   NULL);
+    TXT_SetWindowAction(window, TXT_HORIZ_RIGHT,
+                        TXT_NewWindowAction(KEY_ENTER, "Nullità"));
+
+}
+
 void SetupWindow(void)
 {
     txt_window_t *window;
@@ -93,7 +122,7 @@ void SetupWindow(void)
     txt_label_t *toplabel;
     char buf[100];
     int i;
-    
+
     window = TXT_NewWindow("Window test");
 
     TXT_SetWindowHelpURL(window, "https://www.youtube.com/watch?v=dQw4w9WgXcQ");
@@ -128,7 +157,7 @@ void SetupWindow(void)
                    TXT_NewButton("Do nothing"),
                    TXT_TABLE_OVERFLOW_DOWN,
                    TXT_TABLE_OVERFLOW_DOWN,
-                   TXT_NewButton("Also nothing"),
+                   TXT_NewButton2("Qualcosa?", UnicodeWindow, NULL),
                    NULL);
 
     TXT_AddWidget(window, TXT_NewStrut(0, 1));

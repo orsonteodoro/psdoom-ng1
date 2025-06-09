@@ -23,9 +23,11 @@
 #include "txt_gui.h"
 #include "txt_io.h"
 #include "txt_label.h"
+#include "txt_utf8.h"
 #include "txt_window.h"
 
-#define MOUSE_INPUT_WIDTH 8
+// eg. "BUTTON #10"
+#define MOUSE_INPUT_WIDTH 10
 
 static int MousePressCallback(txt_window_t *window, 
                               int x, int y, int b,
@@ -82,8 +84,14 @@ static void GetMouseButtonDescription(int button, char *buf, size_t buf_len)
         case 2:
             M_StringCopy(buf, "MID", buf_len);
             break;
+        case 3:
+            M_StringCopy(buf, "WHEEL UP", buf_len);
+            break;
+        case 4:
+            M_StringCopy(buf, "WHEEL DOWN", buf_len);
+            break;
         default:
-            M_snprintf(buf, buf_len, "BUTTON #%i", button + 1);
+            M_snprintf(buf, buf_len, "BUTTON #%i", button - 1);
             break;
     }
 }
@@ -108,7 +116,7 @@ static void TXT_MouseInputDrawer(TXT_UNCAST_ARG(mouse_input))
     
     TXT_DrawString(buf);
     
-    for (i=strlen(buf); i<MOUSE_INPUT_WIDTH; ++i)
+    for (i = TXT_UTF8_Strlen(buf); i < MOUSE_INPUT_WIDTH; ++i)
     {
         TXT_DrawString(" ");
     }

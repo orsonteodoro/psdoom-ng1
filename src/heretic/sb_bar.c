@@ -26,6 +26,7 @@
 #include "p_local.h"
 #include "s_sound.h"
 #include "v_video.h"
+#include "am_map.h"
 
 // Types
 
@@ -539,7 +540,6 @@ static int oldkeys = -1;
 
 int playerkeys = 0;
 
-extern boolean automapactive;
 
 void SB_Drawer(void)
 {
@@ -885,7 +885,7 @@ void DrawMainBar(void)
 
 void DrawInventoryBar(void)
 {
-    char *patch;
+    const char *patch;
     int i;
     int x;
 
@@ -919,7 +919,7 @@ void DrawInventoryBar(void)
 
 void DrawFullScreenStuff(void)
 {
-    char *patch;
+    const char *patch;
     int i;
     int x;
     int temp;
@@ -950,7 +950,7 @@ void DrawFullScreenStuff(void)
         if (CPlayer->readyArtifact > 0)
         {
             patch = DEH_String(patcharti[CPlayer->readyArtifact]);
-            V_DrawTLPatch(286, 170, W_CacheLumpName(DEH_String("ARTIBOX"), PU_CACHE));
+            V_DrawAltTLPatch(286, 170, W_CacheLumpName(DEH_String("ARTIBOX"), PU_CACHE));
             V_DrawPatch(286, 170, W_CacheLumpName(patch, PU_CACHE));
             DrSmallNumber(CPlayer->inventory[inv_ptr].count, 307, 192);
         }
@@ -960,7 +960,7 @@ void DrawFullScreenStuff(void)
         x = inv_ptr - curpos;
         for (i = 0; i < 7; i++)
         {
-            V_DrawTLPatch(50 + i * 31, 168,
+            V_DrawAltTLPatch(50 + i * 31, 168,
                           W_CacheLumpName(DEH_String("ARTIBOX"), PU_CACHE));
             if (CPlayer->inventorySlotNum > x + i
                 && CPlayer->inventory[x + i].type != arti_none)
@@ -1073,7 +1073,6 @@ static void CheatNoClipFunc(player_t * player, Cheat_t * cheat)
 static void CheatWeaponsFunc(player_t * player, Cheat_t * cheat)
 {
     int i;
-    //extern boolean *WeaponInShareware;
 
     player->armorpoints = 200;
     player->armortype = 2;
@@ -1243,8 +1242,6 @@ static void CheatWarpFunc(player_t * player, Cheat_t * cheat)
 
 static void CheatChickenFunc(player_t * player, Cheat_t * cheat)
 {
-    extern boolean P_UndoPlayerChicken(player_t * player);
-
     if (player->chickenTics)
     {
         if (P_UndoPlayerChicken(player))

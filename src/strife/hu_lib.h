@@ -112,7 +112,7 @@ void	HUlib_drawTextLine(hu_textline_t *l, boolean drawcursor);
 void	HUlib_eraseTextLine(hu_textline_t *l);
 
 // villsa [STRIFE]
-void HUlib_drawYellowText(int x, int y, char *text);
+void HUlib_drawYellowText(int x, int y, const char *text);
 
 
 //
@@ -137,8 +137,8 @@ void HUlib_addLineToSText(hu_stext_t* s);
 void
 HUlib_addMessageToSText
 ( hu_stext_t*	s,
-  char*		prefix,
-  char*		msg );
+  const char	*prefix,
+  const char	*msg );
 
 // draws stext
 void HUlib_drawSText(hu_stext_t* s);

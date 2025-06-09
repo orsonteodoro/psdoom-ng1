@@ -38,6 +38,9 @@ Variables should be named like this: `my_variable_name`, not like this:
 `MyVariableName`.  In pointer variable declarations, place the `*` next
 to the variable name, not the type.
 
+When casting variables from one type to another, put a space after the
+last closing brace.
+
 When using an if, do, while, or for statement, always use the { } braces
 even when they are not necessary.  For example, do this:
 
@@ -122,6 +125,30 @@ void FunctionName(int argument, int arg2, int arg3, int arg4, int arg5,
 }
 ```
 
+## Editor-specific default settings
+
+If you use vim, you can put this into your `.vimrc` (or install the
+`localvimrc` script):
+
+```
+set expandtab
+set tabstop=8
+set softtabstop=4
+set shiftwidth=4
+```
+
+Or, if you use Emacs, put this in your `.emacs`:
+
+```lisp
+(add-hook 'c-mode-hook (lambda ()
+  (when (and buffer-file-name
+             (string-match "chocolate-doom" buffer-file-name))
+    (c-set-style "bsd")
+    (setq indent-tabs-mode nil)
+    (setq tab-width 8)
+    (setq c-basic-offset 4))))
+```
+
 ## Security
 
 The C standard library has a number of unsafe functions that should be
@@ -188,6 +215,19 @@ relevant when reading or writing data to a file or a network pipe.
 For signed integers, you shouldn’t assume that `(i >> n)` is the same as
 `(i / (1 << n))`.  However, most processors handle bitshifts of signed
 integers properly, so it’s not a huge problem.
+
+Due to Microsoft implementation of the Unicode support in C standard
+library you should use these wrappers to support non-latin paths and
+filenames on Windows.
+
+C library function |   Wrapper
+-------------------|-------------------
+`fopen()`          |  `M_fopen()`
+`remove()`         |  `M_remove()`
+`rename()`         |  `M_rename()`
+`stat()`           |  `M_stat()`
+`mkdir()`          |  `M_MakeDirectory()`
+`getenv()`         |  `M_getenv()`
 
 ## GNU GPL and licensing
 

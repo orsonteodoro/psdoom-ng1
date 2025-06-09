@@ -24,14 +24,17 @@
 #include <ctype.h>
 #include <errno.h>
 #include <assert.h>
+#include <locale.h>
+
+#include "SDL_filesystem.h"
 
 #include "config.h"
 
 #include "doomtype.h"
 #include "doomkeys.h"
-#include "doomfeatures.h"
 #include "i_system.h"
 #include "m_argv.h"
+#include "m_config.h"
 #include "m_misc.h"
 
 #include "z_zone.h"
@@ -43,12 +46,14 @@
 // Location where all configuration data is stored - 
 // default.cfg, savegames, etc.
 
-char *configdir;
+const char *configdir;
+
+static char *autoload_path = "";
 
 // Default filenames for configuration files.
 
-static char *default_main_config;
-static char *default_extra_config;
+static const char *default_main_config;
+static const char *default_extra_config;
 
 typedef enum 
 {
@@ -62,7 +67,7 @@ typedef enum
 typedef struct
 {
     // Name of the variable
-    char *name;
+    const char *name;
 
     // Pointer to the location in memory of the variable
     union {
@@ -94,7 +99,7 @@ typedef struct
 {
     default_t *defaults;
     int numdefaults;
-    char *filename;
+    const char *filename;
 } default_collection_t;
 
 #define CONFIG_VARIABLE_GENERIC(name, type) \
@@ -438,6 +443,13 @@ static default_t	doom_defaults_list[] =
     CONFIG_VARIABLE_INT(mouseb_forward),
 
     //!
+    // Mouse button to turn on running.  When held down, the player
+    // will run while moving.
+    //
+
+    CONFIG_VARIABLE_INT(mouseb_speed),
+
+    //!
     // @game hexen strife
     //
     // Mouse button to jump.
@@ -689,20 +701,20 @@ static default_collection_t doom_defaults =
 static default_t extra_defaults_list[] =
 {
     //!
-    // @game heretic hexen strife
-    //
-    // If non-zero, display the graphical startup screen.
+    // Name of the SDL video driver to use.  If this is an empty string,
+    // the default video driver is used.
     //
 
-    CONFIG_VARIABLE_INT(graphical_startup),
+    CONFIG_VARIABLE_STRING(video_driver),
 
     //!
-    // If non-zero, video settings will be autoadjusted to a valid
-    // configuration when the screen_width and screen_height variables
-    // do not match any valid configuration.
+    // Position of the window on the screen when running in windowed
+    // mode. Accepted values are: "" (empty string) - don't care,
+    // "center" - place window at center of screen, "x,y" - place
+    // window at the specified coordinates.
     //
 
-    CONFIG_VARIABLE_INT(autoadjust_video_settings),
+    CONFIG_VARIABLE_STRING(window_position),
 
     //!
     // If non-zero, the game will run in full screen mode.  If zero,
@@ -712,11 +724,81 @@ static default_t extra_defaults_list[] =
     CONFIG_VARIABLE_INT(fullscreen),
 
     //!
+    // Index of the display on which the game should run. This has no
+    // effect if running in windowed mode (fullscreen=0) and
+    // window_position is not set to "center".
+    //
+
+    CONFIG_VARIABLE_INT(video_display),
+
+    //!
     // If non-zero, the screen will be stretched vertically to display
     // correctly on a square pixel video mode.
     //
 
     CONFIG_VARIABLE_INT(aspect_ratio_correct),
+
+    //!
+    // If non-zero, the screen will have smooth scaling.
+    //
+
+    CONFIG_VARIABLE_INT(smooth_pixel_scaling),
+
+    //!
+    // If non-zero, forces integer scales for resolution-independent rendering.
+    //
+
+    CONFIG_VARIABLE_INT(integer_scaling),
+
+    // If non-zero, any pillar/letter boxes drawn around the game area
+    // will "flash" when the game palette changes, simulating the VGA
+    // "porch"
+
+    CONFIG_VARIABLE_INT(vga_porch_flash),
+
+    //!
+    // Window width when running in windowed mode.
+    //
+
+    CONFIG_VARIABLE_INT(window_width),
+
+    //!
+    // Window height when running in windowed mode.
+    //
+
+    CONFIG_VARIABLE_INT(window_height),
+
+    //!
+    // Width for screen mode when running fullscreen.
+    // If this and fullscreen_height are both set to zero, we run
+    // fullscreen as a desktop window that covers the entire screen,
+    // rather than ever switching screen modes. It should usually
+    // be unnecessary to set this value.
+    //
+
+    CONFIG_VARIABLE_INT(fullscreen_width),
+
+    //!
+    // Height for screen mode when running fullscreen.
+    // See documentation for fullscreen_width.
+    //
+
+    CONFIG_VARIABLE_INT(fullscreen_height),
+
+    //!
+    // If non-zero, force the use of a software renderer. For use on
+    // systems lacking hardware acceleration.
+    //
+
+    CONFIG_VARIABLE_INT(force_software_renderer),
+
+    //!
+    // Maximum number of pixels to use for intermediate scaling buffer.
+    // More pixels mean that the screen can be rendered more precisely,
+    // but there are diminishing returns on quality. The default limits to
+    // 16,000,000 pixels, which is enough to cover 4K monitor standards.
+
+    CONFIG_VARIABLE_INT(max_scaling_buffer_pixels),
 
     //!
     // Number of milliseconds to wait on startup after the video mode
@@ -728,30 +810,324 @@ static default_t extra_defaults_list[] =
     CONFIG_VARIABLE_INT(startup_delay),
 
     //!
-    // Screen width in pixels.  If running in full screen mode, this is
-    // the X dimension of the video mode to use.  If running in
-    // windowed mode, this is the width of the window in which the game
-    // will run.
+    // @game heretic hexen strife
+    //
+    // If non-zero, display the graphical startup screen.
     //
 
-    CONFIG_VARIABLE_INT(screen_width),
+    CONFIG_VARIABLE_INT(graphical_startup),
 
     //!
-    // Screen height in pixels.  If running in full screen mode, this is
-    // the Y dimension of the video mode to use.  If running in
-    // windowed mode, this is the height of the window in which the game
-    // will run.
+    // @game doom heretic strife
+    //
+    // If non-zero, the ENDOOM text screen is displayed when exiting the
+    // game. If zero, the ENDOOM screen is not displayed.
     //
 
-    CONFIG_VARIABLE_INT(screen_height),
+    CONFIG_VARIABLE_INT(show_endoom),
 
     //!
-    // Color depth of the screen, in bits.
-    // If this is set to zero, the color depth will be automatically set
-    // on startup to the machine's default/native color depth.
+    // @game doom strife
+    //
+    // If non-zero, a disk activity indicator is displayed when data is read
+    // from disk. If zero, the disk activity indicator is not displayed.
     //
 
-    CONFIG_VARIABLE_INT(screen_bpp),
+    CONFIG_VARIABLE_INT(show_diskicon),
+
+    //!
+    // If non-zero, save screenshots in PNG format. If zero, screenshots are
+    // saved in PCX format, as Vanilla Doom does.
+    //
+
+    CONFIG_VARIABLE_INT(png_screenshots),
+
+    //!
+    // Sound output sample rate, in Hz.  Typical values to use are
+    // 11025, 22050, 44100 and 48000.
+    //
+
+    CONFIG_VARIABLE_INT(snd_samplerate),
+
+    //!
+    // Maximum number of bytes to allocate for caching converted sound
+    // effects in memory. If set to zero, there is no limit applied.
+    //
+
+    CONFIG_VARIABLE_INT(snd_cachesize),
+
+    //!
+    // Maximum size of the output sound buffer size in milliseconds.
+    // Sound output is generated periodically in slices. Higher values
+    // might be more efficient but will introduce latency to the
+    // sound output. The default is 28ms (one slice per tic with the
+    // 35fps timer).
+    //
+
+    CONFIG_VARIABLE_INT(snd_maxslicetime_ms),
+
+    //!
+    // If non-zero, sound effects will have their pitch varied up or
+    // down by a random amount during play. If zero, sound effects
+    // play back at their default pitch.
+    //
+
+    CONFIG_VARIABLE_INT(snd_pitchshift),
+
+    //!
+    // External command to invoke to perform MIDI playback. If set to
+    // the empty string, SDL_mixer's internal MIDI playback is used.
+    // This only has any effect when snd_musicdevice is set to General
+    // MIDI output.
+    //
+
+    CONFIG_VARIABLE_STRING(snd_musiccmd),
+
+    //!
+    // Value to set for the DMXOPTION environment variable. If this contains
+    // "-opl3", output for an OPL3 chip is generated when in OPL MIDI
+    // playback mode.
+    //
+
+    CONFIG_VARIABLE_STRING(snd_dmxoption),
+
+    //!
+    // The I/O port to use to access the OPL chip.  Only relevant when
+    // using native OPL music playback.
+    //
+
+    CONFIG_VARIABLE_INT_HEX(opl_io_port),
+
+    //!
+    // Controls whether libsamplerate support is used for performing
+    // sample rate conversions of sound effects.  Support for this
+    // must be compiled into the program.
+    //
+    // If zero, libsamplerate support is disabled.  If non-zero,
+    // libsamplerate is enabled. Increasing values roughly correspond
+    // to higher quality conversion; the higher the quality, the
+    // slower the conversion process.  Linear conversion = 1;
+    // Zero order hold = 2; Fast Sinc filter = 3; Medium quality
+    // Sinc filter = 4; High quality Sinc filter = 5.
+    //
+
+    CONFIG_VARIABLE_INT(use_libsamplerate),
+
+    //!
+    // Scaling factor used by libsamplerate. This is used when converting
+    // sounds internally back into integer form; normally it should not
+    // be necessary to change it from the default value. The only time
+    // it might be needed is if a PWAD file is loaded that contains very
+    // loud sounds, in which case the conversion may cause sound clipping
+    // and the scale factor should be reduced. The lower the value, the
+    // quieter the sound effects become, so it should be set as high as is
+    // possible without clipping occurring.
+
+    CONFIG_VARIABLE_FLOAT(libsamplerate_scale),
+
+    //!
+    // Full path to a directory in which WAD files and dehacked patches
+    // can be placed to be automatically loaded on startup. A subdirectory
+    // of this directory matching the IWAD name is checked to find the
+    // files to load.
+
+    CONFIG_VARIABLE_STRING(autoload_path),
+
+    //!
+    // Full path to a directory containing configuration files for
+    // substitute music packs. These packs contain high quality renderings
+    // of game music to be played instead of using the system's built-in
+    // MIDI playback.
+    //
+
+    CONFIG_VARIABLE_STRING(music_pack_path),
+
+#ifdef HAVE_FLUIDSYNTH
+    //!
+    // If 1, activate the FluidSynth chorus effects module. If 0, no chorus
+    // will be added to the output signal.
+    //
+
+    CONFIG_VARIABLE_INT(fsynth_chorus_active),
+
+    //!
+    // Specifies the modulation depth of the FluidSynth chorus. Default is
+    // 5.0, range is 0.0 to 256.0.
+    //
+
+    CONFIG_VARIABLE_FLOAT(fsynth_chorus_depth),
+
+    //!
+    // Specifies the output amplitude of the FluidSynth chorus signal. Default
+    // is 0.35, range is 0.0 to 10.0.
+    //
+
+    CONFIG_VARIABLE_FLOAT(fsynth_chorus_level),
+
+    //!
+    // Sets the voice count of the FluidSynth chorus signal. Default is 3,
+    // range is 0 to 99.
+    //
+
+    CONFIG_VARIABLE_INT(fsynth_chorus_nr),
+
+    //!
+    // Sets the FluidSynth chorus modulation speed in Hz. Default is 0.3,
+    // range is 0.1 to 5.0.
+    //
+
+    CONFIG_VARIABLE_FLOAT(fsynth_chorus_speed),
+
+    //!
+    // This setting defines how FluidSynth interprets Bank Select messages. The
+    // default is "gs". Other possible values are "gm", "xg" and "mma".
+    //
+
+    CONFIG_VARIABLE_STRING(fsynth_midibankselect),
+
+    //!
+    // Sets the number of FluidSynth voices that can be played in parallel.
+    // Default is 256, range is 1 - 65535.
+    //
+
+    CONFIG_VARIABLE_INT(fsynth_polyphony),
+
+    //!
+    // If 1, activate the FluidSynth reverb effects module. If 0, no reverb
+    // will be added to the output signal.
+    //
+
+    CONFIG_VARIABLE_INT(fsynth_reverb_active),
+
+    //!
+    // Sets the amount of FluidSynth reverb damping. Default is 0.4, range is
+    // 0.0 to 1.0.
+    //
+
+    CONFIG_VARIABLE_FLOAT(fsynth_reverb_damp),
+
+    //!
+    // Sets the FluidSynth reverb amplitude. Default is 0.15, range is 0.0 -
+    // 1.0.
+    //
+
+    CONFIG_VARIABLE_FLOAT(fsynth_reverb_level),
+
+    //!
+    // Sets the room size(i.e. amount of wet) FluidSynth reverb. Default is
+    // 0.6, range is 0.0 - 1.0.
+    //
+
+    CONFIG_VARIABLE_FLOAT(fsynth_reverb_roomsize),
+
+    //!
+    // Sets the stereo spread of the FluidSynth reverb signal. Default is
+    // 0.4, range is 0.0 - 100.0.
+    //
+
+    CONFIG_VARIABLE_FLOAT(fsynth_reverb_width),
+
+    //!
+    // Fine tune the FluidSynth output level. Default is 1.0,
+    // range is 0.0 - 10.0.
+    //
+
+    CONFIG_VARIABLE_FLOAT(fsynth_gain),
+
+    //!
+    // Full path to a soundfont file to use with FluidSynth MIDI playback.
+    //
+
+    CONFIG_VARIABLE_STRING(fsynth_sf_path),
+#endif // HAVE_FLUIDSYNTH
+
+    //!
+    // Full path to a Timidity configuration file to use for MIDI
+    // playback. The file will be evaluated from the directory where
+    // it is evaluated, so there is no need to add "dir" commands
+    // into it.
+    //
+
+    CONFIG_VARIABLE_STRING(timidity_cfg_path),
+
+    //!
+    // Path to GUS patch files to use when operating in GUS emulation
+    // mode.
+    //
+
+    CONFIG_VARIABLE_STRING(gus_patch_path),
+
+    //!
+    // Number of kilobytes of RAM to use in GUS emulation mode. Valid
+    // values are 256, 512, 768 or 1024.
+    //
+
+    CONFIG_VARIABLE_INT(gus_ram_kb),
+
+#ifdef _WIN32
+    //!
+    // MIDI device for native Windows MIDI.
+    //
+
+    CONFIG_VARIABLE_STRING(winmm_midi_device),
+
+    //!
+    // Compatibility level for native Windows MIDI, default 0. Valid values are
+    // 0 (Vanilla), 1 (Standard), 2 (Full).
+    //
+
+    CONFIG_VARIABLE_INT(winmm_complevel),
+
+    //!
+    // Reset device type for native Windows MIDI, default 1. Valid values are
+    // 0 (None), 1 (GM Mode), 2 (GS Mode), 3 (XG Mode).
+    //
+
+    CONFIG_VARIABLE_INT(winmm_reset_type),
+
+    //!
+    // Reset device delay for native Windows MIDI, default 0, median value 100 ms.
+    //
+
+    CONFIG_VARIABLE_INT(winmm_reset_delay),
+#endif
+
+    //!
+    // @game doom strife
+    //
+    // If non-zero, the Vanilla savegame limit is enforced; if the
+    // savegame exceeds 180224 bytes in size, the game will exit with
+    // an error.  If this has a value of zero, there is no limit to
+    // the size of savegames.
+    //
+
+    CONFIG_VARIABLE_INT(vanilla_savegame_limit),
+
+    //!
+    // @game doom strife
+    //
+    // If non-zero, the Vanilla demo size limit is enforced; the game
+    // exits with an error when a demo exceeds the demo size limit
+    // (128KiB by default).  If this has a value of zero, there is no
+    // limit to the size of demos.
+    //
+
+    CONFIG_VARIABLE_INT(vanilla_demo_limit),
+
+    //!
+    // If non-zero, the game behaves like Vanilla Doom, always assuming
+    // an American keyboard mapping.  If this has a value of zero, the
+    // native keyboard mapping of the keyboard is used.
+    //
+
+    CONFIG_VARIABLE_INT(vanilla_keyboard_mapping),
+
+    //!
+    // Name to use in network games for identification.  This is only
+    // used on the "waiting" screen while waiting for the game to start.
+    //
+
+    CONFIG_VARIABLE_STRING(player_name),
 
     //!
     // If this is non-zero, the mouse will be "grabbed" when running
@@ -786,144 +1162,104 @@ static default_t extra_defaults_list[] =
     CONFIG_VARIABLE_INT(mouse_threshold),
 
     //!
-    // Sound output sample rate, in Hz.  Typical values to use are
-    // 11025, 22050, 44100 and 48000.
+    // Mouse button to strafe left.
     //
 
-    CONFIG_VARIABLE_INT(snd_samplerate),
+    CONFIG_VARIABLE_INT(mouseb_strafeleft),
 
     //!
-    // Maximum number of bytes to allocate for caching converted sound
-    // effects in memory. If set to zero, there is no limit applied.
+    // Mouse button to strafe right.
     //
 
-    CONFIG_VARIABLE_INT(snd_cachesize),
+    CONFIG_VARIABLE_INT(mouseb_straferight),
 
     //!
-    // Maximum size of the output sound buffer size in milliseconds.
-    // Sound output is generated periodically in slices. Higher values
-    // might be more efficient but will introduce latency to the
-    // sound output. The default is 28ms (one slice per tic with the
-    // 35fps timer).
+    // Mouse button to turn left.
+    //
 
-    CONFIG_VARIABLE_INT(snd_maxslicetime_ms),
+    CONFIG_VARIABLE_INT(mouseb_turnleft),
 
     //!
-    // If non-zero, sound effects will have their pitch varied up or
-    // down by a random amount during play. If zero, sound effects
-    // play back at their default pitch. The default is zero.
+    // Mouse button to turn right.
     //
 
-    CONFIG_VARIABLE_INT(snd_pitchshift),
+    CONFIG_VARIABLE_INT(mouseb_turnright),
 
     //!
-    // External command to invoke to perform MIDI playback. If set to
-    // the empty string, SDL_mixer's internal MIDI playback is used.
-    // This only has any effect when snd_musicdevice is set to General
-    // MIDI output.
+    // Mouse button to "use" an object, eg. a door or switch.
+    //
 
-    CONFIG_VARIABLE_STRING(snd_musiccmd),
+    CONFIG_VARIABLE_INT(mouseb_use),
 
     //!
-    // Value to set for the DMXOPTION environment variable. If this contains
-    // "-opl3", output for an OPL3 chip is generated when in OPL MIDI
-    // playback mode.
+    // Mouse button to move backwards.
     //
-    CONFIG_VARIABLE_STRING(snd_dmxoption),
+
+    CONFIG_VARIABLE_INT(mouseb_backward),
 
     //!
-    // The I/O port to use to access the OPL chip.  Only relevant when
-    // using native OPL music playback.
+    // Mouse button to cycle to the previous weapon.
     //
 
-    CONFIG_VARIABLE_INT_HEX(opl_io_port),
+    CONFIG_VARIABLE_INT(mouseb_prevweapon),
 
     //!
-    // @game doom heretic strife
-    //
-    // If non-zero, the ENDOOM text screen is displayed when exiting the
-    // game. If zero, the ENDOOM screen is not displayed.
+    // Mouse button to cycle to the next weapon.
     //
 
-    CONFIG_VARIABLE_INT(show_endoom),
+    CONFIG_VARIABLE_INT(mouseb_nextweapon),
+    
+    //!
+    // @game heretic
+    //
+    // Mouse button to move to the left in the inventory.
+    //
+
+    CONFIG_VARIABLE_INT(mouseb_invleft),
 
     //!
-    // @game doom strife
+    // @game heretic
     //
-    // If non-zero, a disk activity indicator is displayed when data is read
-    // from disk. If zero, the disk activity indicator is not displayed.
+    // Mouse button to move to the right in the inventory.
     //
 
-    CONFIG_VARIABLE_INT(show_diskicon),
+    CONFIG_VARIABLE_INT(mouseb_invright),
 
     //!
-    // If non-zero, save screenshots in PNG format.
+    // @game heretic hexen
+    //
+    // Mouse button to use artifact.
     //
 
-    CONFIG_VARIABLE_INT(png_screenshots),
+    CONFIG_VARIABLE_INT(mouseb_useartifact),
 
     //!
-    // @game doom strife
-    //
-    // If non-zero, the Vanilla savegame limit is enforced; if the
-    // savegame exceeds 180224 bytes in size, the game will exit with
-    // an error.  If this has a value of zero, there is no limit to
-    // the size of savegames.
+    // If non-zero, double-clicking a mouse button acts like pressing
+    // the "use" key to use an object in-game, eg. a door or switch.
     //
 
-    CONFIG_VARIABLE_INT(vanilla_savegame_limit),
+    CONFIG_VARIABLE_INT(dclick_use),
 
     //!
-    // @game doom strife
-    //
-    // If non-zero, the Vanilla demo size limit is enforced; the game
-    // exits with an error when a demo exceeds the demo size limit
-    // (128KiB by default).  If this has a value of zero, there is no
-    // limit to the size of demos.
+    // SDL GUID string indicating the joystick to use. An empty string
+    // indicates that no joystick is configured.
     //
 
-    CONFIG_VARIABLE_INT(vanilla_demo_limit),
+    CONFIG_VARIABLE_STRING(joystick_guid),
 
     //!
-    // If non-zero, the game behaves like Vanilla Doom, always assuming
-    // an American keyboard mapping.  If this has a value of zero, the
-    // native keyboard mapping of the keyboard is used.
-    //
-
-    CONFIG_VARIABLE_INT(vanilla_keyboard_mapping),
-
-    //!
-    // Name of the SDL video driver to use.  If this is an empty string,
-    // the default video driver is used.
-    //
-
-    CONFIG_VARIABLE_STRING(video_driver),
-
-    //!
-    // Position of the window on the screen when running in windowed
-    // mode. Accepted values are: "" (empty string) - don't care,
-    // "center" - place window at center of screen, "x,y" - place
-    // window at the specified coordinates.
-
-    CONFIG_VARIABLE_STRING(window_position),
-
-#ifdef FEATURE_MULTIPLAYER
-
-    //!
-    // Name to use in network games for identification.  This is only
-    // used on the "waiting" screen while waiting for the game to start.
-    //
-
-    CONFIG_VARIABLE_STRING(player_name),
-
-#endif
-
-    //!
-    // Joystick number to use; '0' is the first joystick.  A negative
-    // value ('-1') indicates that no joystick is configured.
+    // Index of SDL joystick to use; this is only used in the case where
+    // multiple identical joystick devices are connected which have the
+    // same GUID, to distinguish between devices.
     //
 
     CONFIG_VARIABLE_INT(joystick_index),
+
+    //!
+    // If non-zero, use analog movement when playing with a gamepad.
+    //
+
+    CONFIG_VARIABLE_INT(use_analog),
 
     //!
     // Joystick axis to use to for horizontal (X) movement.
@@ -936,6 +1272,12 @@ static default_t extra_defaults_list[] =
     //
 
     CONFIG_VARIABLE_INT(joystick_x_invert),
+
+    //!
+    // Joystick turn analog sensitivity, specified as a value between 0 and 20.
+    //
+
+    CONFIG_VARIABLE_INT(joystick_turn_sensitivity),
 
     //!
     // Joystick axis to use to for vertical (Y) movement.
@@ -961,6 +1303,31 @@ static default_t extra_defaults_list[] =
     //
 
     CONFIG_VARIABLE_INT(joystick_strafe_invert),
+
+    //!
+    // Joystick move and strafe analog sensitivity, specified as a value
+    // between 0 and 20.
+    //
+
+    CONFIG_VARIABLE_INT(joystick_move_sensitivity),
+    //!
+    // Joystick axis to use to for looking up and down.
+    //
+
+    CONFIG_VARIABLE_INT(joystick_look_axis),
+
+    //!
+    // If non-zero, movement on the joystick axis used for looking
+    // is inverted.
+    //
+
+    CONFIG_VARIABLE_INT(joystick_look_invert),
+
+    //!
+    // Joystick look analog sensitivity, specified as a value between 0 and 20.
+    //
+
+    CONFIG_VARIABLE_INT(joystick_look_sensitivity),
 
     //!
     // The physical joystick button that corresponds to joystick
@@ -1040,6 +1407,89 @@ static default_t extra_defaults_list[] =
     CONFIG_VARIABLE_INT(joystick_physical_button10),
 
     //!
+    // The physical joystick button that corresponds to joystick
+    // virtual button #11.
+    //
+
+    CONFIG_VARIABLE_INT(joystick_physical_button11),
+
+    //!
+    // The physical joystick button that corresponds to joystick
+    // virtual button #12.
+    //
+
+    CONFIG_VARIABLE_INT(joystick_physical_button12),
+
+    //!
+    // The physical joystick button that corresponds to joystick
+    // virtual button #13.
+    //
+
+    CONFIG_VARIABLE_INT(joystick_physical_button13),
+
+    //!
+    // The physical joystick button that corresponds to joystick
+    // virtual button #14.
+    //
+
+    CONFIG_VARIABLE_INT(joystick_physical_button14),
+
+    //!
+    // The physical joystick button that corresponds to joystick
+    // virtual button #15.
+    //
+
+    CONFIG_VARIABLE_INT(joystick_physical_button15),
+
+    //!
+    // The physical joystick button that corresponds to joystick
+    // virtual button #16.
+    //
+
+    CONFIG_VARIABLE_INT(joystick_physical_button16),
+
+    //!
+    // If non-zero, use the SDL_GameController interface instead of the
+    // SDL_Joystick interface.
+    //
+
+    CONFIG_VARIABLE_INT(use_gamepad),
+
+    //!
+    // Stores the SDL_GameControllerType of the last configured gamepad.
+    //
+
+    CONFIG_VARIABLE_INT(gamepad_type),
+
+    //!
+    // Joystick x axis dead zone, specified as a percentage of the axis max
+    // value.
+    //
+
+    CONFIG_VARIABLE_INT(joystick_x_dead_zone),
+
+    //!
+    // Joystick y axis dead zone, specified as a percentage of the axis max
+    // value.
+    //
+
+    CONFIG_VARIABLE_INT(joystick_y_dead_zone),
+
+    //!
+    // Joystick strafe axis dead zone, specified as a percentage of the axis
+    // max value.
+    //
+
+    CONFIG_VARIABLE_INT(joystick_strafe_dead_zone),
+
+    //!
+    // Joystick look axis dead zone, specified as a percentage of the axis max
+    // value.
+    //
+
+    CONFIG_VARIABLE_INT(joystick_look_dead_zone),
+
+    //!
     // Joystick virtual button to make the player strafe left.
     //
 
@@ -1076,101 +1526,46 @@ static default_t extra_defaults_list[] =
     CONFIG_VARIABLE_INT(joyb_nextweapon),
 
     //!
-    // Mouse button to strafe left.
+    // @game heretic hexen
+    // Joystick virtual button to activate artifact.
     //
 
-    CONFIG_VARIABLE_INT(mouseb_strafeleft),
+    CONFIG_VARIABLE_INT(joyb_useartifact),
 
     //!
-    // Mouse button to strafe right.
+    // @game heretic hexen
+    // Joystick virtual button to move left in the inventory.
     //
 
-    CONFIG_VARIABLE_INT(mouseb_straferight),
+    CONFIG_VARIABLE_INT(joyb_invleft),
 
     //!
-    // Mouse button to "use" an object, eg. a door or switch.
+    // @game heretic hexen
+    // Joystick virtual button to move right in the inventory.
     //
 
-    CONFIG_VARIABLE_INT(mouseb_use),
+    CONFIG_VARIABLE_INT(joyb_invright),
 
     //!
-    // Mouse button to move backwards.
+    // @game heretic hexen
+    // Joystick virtual button to fly up.
     //
 
-    CONFIG_VARIABLE_INT(mouseb_backward),
+    CONFIG_VARIABLE_INT(joyb_flyup),
 
     //!
-    // Mouse button to cycle to the previous weapon.
+    // @game heretic hexen
+    // Joystick virtual button to fly down.
     //
 
-    CONFIG_VARIABLE_INT(mouseb_prevweapon),
+    CONFIG_VARIABLE_INT(joyb_flydown),
 
     //!
-    // Mouse button to cycle to the next weapon.
+    // @game heretic hexen
+    // Joystick virtual button to center flying.
     //
 
-    CONFIG_VARIABLE_INT(mouseb_nextweapon),
-
-    //!
-    // If non-zero, double-clicking a mouse button acts like pressing
-    // the "use" key to use an object in-game, eg. a door or switch.
-    //
-
-    CONFIG_VARIABLE_INT(dclick_use),
-
-#ifdef FEATURE_SOUND
-
-    //!
-    // Controls whether libsamplerate support is used for performing
-    // sample rate conversions of sound effects.  Support for this
-    // must be compiled into the program.
-    //
-    // If zero, libsamplerate support is disabled.  If non-zero,
-    // libsamplerate is enabled. Increasing values roughly correspond
-    // to higher quality conversion; the higher the quality, the
-    // slower the conversion process.  Linear conversion = 1;
-    // Zero order hold = 2; Fast Sinc filter = 3; Medium quality
-    // Sinc filter = 4; High quality Sinc filter = 5.
-    //
-
-    CONFIG_VARIABLE_INT(use_libsamplerate),
-
-    //!
-    // Scaling factor used by libsamplerate. This is used when converting
-    // sounds internally back into integer form; normally it should not
-    // be necessary to change it from the default value. The only time
-    // it might be needed is if a PWAD file is loaded that contains very
-    // loud sounds, in which case the conversion may cause sound clipping
-    // and the scale factor should be reduced. The lower the value, the
-    // quieter the sound effects become, so it should be set as high as is
-    // possible without clipping occurring.
-
-    CONFIG_VARIABLE_FLOAT(libsamplerate_scale),
-
-    //!
-    // Full path to a Timidity configuration file to use for MIDI
-    // playback. The file will be evaluated from the directory where
-    // it is evaluated, so there is no need to add "dir" commands
-    // into it.
-    //
-
-    CONFIG_VARIABLE_STRING(timidity_cfg_path),
-
-    //!
-    // Path to GUS patch files to use when operating in GUS emulation
-    // mode.
-    //
-
-    CONFIG_VARIABLE_STRING(gus_patch_path),
-
-    //!
-    // Number of kilobytes of RAM to use in GUS emulation mode. Valid
-    // values are 256, 512, 768 or 1024.
-    //
-
-    CONFIG_VARIABLE_INT(gus_ram_kb),
-
-#endif
+    CONFIG_VARIABLE_INT(joyb_flycenter),
 
     //!
     // Key to pause or unpause the game.
@@ -1455,6 +1850,86 @@ static default_t extra_defaults_list[] =
     CONFIG_VARIABLE_KEY(key_nextweapon),
 
     //!
+    // @game heretic
+    //
+    // Key to use "quartz flask" artifact.
+    //
+
+    CONFIG_VARIABLE_KEY(key_arti_quartz),
+
+    //!
+    // @game heretic
+    //
+    // Key to use "mystic urn" artifact.
+    //
+
+    CONFIG_VARIABLE_KEY(key_arti_urn),
+
+    //!
+    // @game heretic
+    //
+    // Key to use "timebomb of the ancients" artifact.
+    //
+
+    CONFIG_VARIABLE_KEY(key_arti_bomb),
+
+    //!
+    // @game heretic
+    //
+    // Key to use "tome of power" artifact.
+    //
+
+    CONFIG_VARIABLE_KEY(key_arti_tome),
+
+    //!
+    // @game heretic
+    //
+    // Key to use "ring of invincibility" artifact.
+    //
+
+    CONFIG_VARIABLE_KEY(key_arti_ring),
+
+    //!
+    // @game heretic
+    //
+    // Key to use "chaos device" artifact.
+    //
+
+    CONFIG_VARIABLE_KEY(key_arti_chaosdevice),
+
+    //!
+    // @game heretic
+    //
+    // Key to use "shadowsphere" artifact.
+    //
+
+    CONFIG_VARIABLE_KEY(key_arti_shadowsphere),
+
+    //!
+    // @game heretic
+    //
+    // Key to use "wings of wrath" artifact.
+    //
+
+    CONFIG_VARIABLE_KEY(key_arti_wings),
+
+    //!
+    // @game heretic
+    //
+    // Key to use "torch" artifact.
+    //
+
+    CONFIG_VARIABLE_KEY(key_arti_torch),
+
+    //!
+    // @game heretic
+    //
+    // Key to use "morph ovum" artifact.
+    //
+
+    CONFIG_VARIABLE_KEY(key_arti_morph),
+
+    //!
     // @game hexen
     //
     // Key to use one of each artifact.
@@ -1602,7 +2077,7 @@ static default_collection_t extra_defaults =
 
 // Search a collection for a variable
 
-static default_t *SearchCollection(default_collection_t *collection, char *name)
+static default_t *SearchCollection(default_collection_t *collection, const char *name)
 {
     int i;
 
@@ -1654,7 +2129,7 @@ static void SaveDefaultCollection(default_collection_t *collection)
     int i, v;
     FILE *f;
 	
-    f = fopen (collection->filename, "w");
+    f = M_fopen(collection->filename, "w");
     if (!f)
 	return; // can't write the file, but don't complain
 
@@ -1753,19 +2228,19 @@ static void SaveDefaultCollection(default_collection_t *collection)
 
 // Parses integer values in the configuration file
 
-static int ParseIntParameter(char *strparm)
+static int ParseIntParameter(const char *strparm)
 {
     int parm;
 
     if (strparm[0] == '0' && strparm[1] == 'x')
-        sscanf(strparm+2, "%x", &parm);
+        sscanf(strparm+2, "%x", (unsigned int *) &parm);
     else
         sscanf(strparm, "%i", &parm);
 
     return parm;
 }
 
-static void SetVariable(default_t *def, char *value)
+static void SetVariable(default_t *def, const char *value)
 {
     int intparm;
 
@@ -1803,7 +2278,41 @@ static void SetVariable(default_t *def, char *value)
             break;
 
         case DEFAULT_FLOAT:
-            *def->location.f = (float) atof(value);
+        {
+            // Different locales use different decimal separators.
+            // However, the choice of the current locale isn't always
+            // under our own control. If the atof() function fails to
+            // parse the string representing the floating point number
+            // using the current locale's decimal separator, it will
+            // return 0, resulting in silent sound effects. To
+            // mitigate this, we replace the first non-digit,
+            // non-minus character in the string with the current
+            // locale's decimal separator before passing it to atof().
+            struct lconv *lc = localeconv();
+            char dec, *str;
+            int i = 0;
+
+            dec = lc->decimal_point[0];
+            str = M_StringDuplicate(value);
+
+            // Skip sign indicators.
+            if (str[i] == '-' || str[i] == '+')
+            {
+                i++;
+            }
+
+            for ( ; str[i] != '\0'; i++)
+            {
+                if (!isdigit(str[i]))
+                {
+                    str[i] = dec;
+                    break;
+                }
+            }
+
+            *def->location.f = (float) atof(str);
+            free(str);
+        }
             break;
     }
 }
@@ -1816,7 +2325,7 @@ static void LoadDefaultCollection(default_collection_t *collection)
     char strparm[100];
 
     // read the file in, overriding any set defaults
-    f = fopen(collection->filename, "r");
+    f = M_fopen(collection->filename, "r");
 
     if (f == NULL)
     {
@@ -1871,7 +2380,7 @@ static void LoadDefaultCollection(default_collection_t *collection)
 
 // Set the default filenames to use for configuration files.
 
-void M_SetConfigFilenames(char *main_config, char *extra_config)
+void M_SetConfigFilenames(const char *main_config, const char *extra_config)
 {
     default_main_config = main_config;
     default_extra_config = extra_config;
@@ -1891,10 +2400,10 @@ void M_SaveDefaults (void)
 // Save defaults to alternate filenames
 //
 
-void M_SaveDefaultsAlternate(char *main, char *extra)
+void M_SaveDefaultsAlternate(const char *main, const char *extra)
 {
-    char *orig_main;
-    char *orig_extra;
+    const char *orig_main;
+    const char *orig_extra;
 
     // Temporarily change the filenames
 
@@ -1919,7 +2428,10 @@ void M_SaveDefaultsAlternate(char *main, char *extra)
 void M_LoadDefaults (void)
 {
     int i;
- 
+
+    // This variable is a special snowflake for no good reason.
+    M_BindStringVariable("autoload_path", &autoload_path);
+
     // check for a custom default file
 
     //!
@@ -1972,7 +2484,7 @@ void M_LoadDefaults (void)
 
 // Get a configuration file variable by its name
 
-static default_t *GetDefaultForName(char *name)
+static default_t *GetDefaultForName(const char *name)
 {
     default_t *result;
 
@@ -1999,7 +2511,7 @@ static default_t *GetDefaultForName(char *name)
 // Bind a variable to a given configuration file variable, by name.
 //
 
-void M_BindIntVariable(char *name, int *location)
+void M_BindIntVariable(const char *name, int *location)
 {
     default_t *variable;
 
@@ -2012,7 +2524,7 @@ void M_BindIntVariable(char *name, int *location)
     variable->bound = true;
 }
 
-void M_BindFloatVariable(char *name, float *location)
+void M_BindFloatVariable(const char *name, float *location)
 {
     default_t *variable;
 
@@ -2023,7 +2535,7 @@ void M_BindFloatVariable(char *name, float *location)
     variable->bound = true;
 }
 
-void M_BindStringVariable(char *name, char **location)
+void M_BindStringVariable(const char *name, char **location)
 {
     default_t *variable;
 
@@ -2037,7 +2549,7 @@ void M_BindStringVariable(char *name, char **location)
 // Set the value of a particular variable; an API function for other
 // parts of the program to assign values to config variables by name.
 
-boolean M_SetVariable(char *name, char *value)
+boolean M_SetVariable(const char *name, const char *value)
 {
     default_t *variable;
 
@@ -2055,7 +2567,7 @@ boolean M_SetVariable(char *name, char *value)
 
 // Get the value of a variable.
 
-int M_GetIntVariable(char *name)
+int M_GetIntVariable(const char *name)
 {
     default_t *variable;
 
@@ -2070,7 +2582,7 @@ int M_GetIntVariable(char *name)
     return *variable->location.i;
 }
 
-const char *M_GetStringVariable(char *name)
+const char *M_GetStringVariable(const char *name)
 {
     default_t *variable;
 
@@ -2085,7 +2597,7 @@ const char *M_GetStringVariable(char *name)
     return *variable->location.s;
 }
 
-float M_GetFloatVariable(char *name)
+float M_GetFloatVariable(const char *name)
 {
     default_t *variable;
 
@@ -2107,30 +2619,23 @@ static char *GetDefaultConfigDir(void)
 {
 #if !defined(_WIN32) || defined(_WIN32_WCE)
 
-    // Configuration settings are stored in ~/.chocolate-doom/,
-    // except on Windows, where we behave like Vanilla Doom and
-    // save in the current directory.
+    // Configuration settings are stored in an OS-appropriate path
+    // determined by SDL.  On typical Unix systems, this might be
+    // ~/.local/share/chocolate-doom.  On Windows, we behave like
+    // Vanilla Doom and save in the current directory.
 
-    char *homedir;
     char *result;
+    char *copy;
 
-    homedir = getenv("HOME");
-
-    if (homedir != NULL)
+    result = SDL_GetPrefPath("", PACKAGE_TARNAME);
+    if (result != NULL)
     {
-        // put all configuration in a config directory off the
-        // homedir
-
-        result = M_StringJoin(homedir, DIR_SEPARATOR_S,
-                              "." PACKAGE_TARNAME, DIR_SEPARATOR_S, NULL);
-
-        return result;
+        copy = M_StringDuplicate(result);
+        SDL_free(result);
+        return copy;
     }
-    else
 #endif /* #ifndef _WIN32 */
-    {
-        return M_StringDuplicate("");
-    }
+    return M_StringDuplicate(exedir);
 }
 
 // 
@@ -2140,7 +2645,7 @@ static char *GetDefaultConfigDir(void)
 // files are stored - default.cfg, chocolate-doom.cfg, savegames, etc.
 //
 
-void M_SetConfigDir(char *dir)
+void M_SetConfigDir(const char *dir)
 {
     // Use the directory that was passed, or find the default.
 
@@ -2153,7 +2658,7 @@ void M_SetConfigDir(char *dir)
         configdir = GetDefaultConfigDir();
     }
 
-    if (strcmp(configdir, "") != 0)
+    if (strcmp(configdir, exedir) != 0)
     {
         printf("Using %s for configuration and saves\n", configdir);
     }
@@ -2163,12 +2668,56 @@ void M_SetConfigDir(char *dir)
     M_MakeDirectory(configdir);
 }
 
+#define MUSIC_PACK_README \
+"Extract music packs into this directory in .flac or .ogg format;\n"   \
+"they will be automatically loaded based on filename to replace the\n" \
+"in-game music with high quality versions.\n\n" \
+"For more information check here:\n\n" \
+"  <https://www.chocolate-doom.org/wiki/index.php/Digital_music_packs>\n\n"
+
+// Set the value of music_pack_path if it is currently empty, and create
+// the directory if necessary.
+void M_SetMusicPackDir(void)
+{
+    const char *current_path;
+    char *prefdir, *music_pack_path, *readme_path;
+
+    current_path = M_GetStringVariable("music_pack_path");
+
+    if (current_path != NULL && strlen(current_path) > 0)
+    {
+        return;
+    }
+
+    prefdir = SDL_GetPrefPath("", PACKAGE_TARNAME);
+    if (prefdir == NULL)
+    {
+        printf("M_SetMusicPackDir: SDL_GetPrefPath failed, music pack directory not set\n");
+        return;
+    }
+    music_pack_path = M_StringJoin(prefdir, "music-packs", NULL);
+
+    M_MakeDirectory(prefdir);
+    M_MakeDirectory(music_pack_path);
+    M_SetVariable("music_pack_path", music_pack_path);
+
+    // We write a README file with some basic instructions on how to use
+    // the directory.
+    readme_path = M_StringJoin(music_pack_path, DIR_SEPARATOR_S,
+                               "README.txt", NULL);
+    M_WriteFile(readme_path, MUSIC_PACK_README, strlen(MUSIC_PACK_README));
+
+    free(readme_path);
+    free(music_pack_path);
+    SDL_free(prefdir);
+}
+
 //
 // Calculate the path to the directory to use to store save games.
 // Creates the directory as necessary.
 //
 
-char *M_GetSaveGameDir(char *iwadname)
+char *M_GetSaveGameDir(const char *iwadname)
 {
     char *savegamedir;
     char *topdir;
@@ -2201,23 +2750,23 @@ char *M_GetSaveGameDir(char *iwadname)
 
     else if (M_ParmExists("-cdrom"))
     {
-        savegamedir = configdir;
+        savegamedir = M_StringDuplicate(configdir);
     }
 #endif
     // If not "doing" a configuration directory (Windows), don't "do"
     // a savegame directory, either.
-    else if (!strcmp(configdir, ""))
+    else if (!strcmp(configdir, exedir))
     {
 	savegamedir = M_StringDuplicate("");
     }
     else
     {
-        // ~/.chocolate-doom/savegames
+        // ~/.local/share/chocolate-doom/savegames
 
         topdir = M_StringJoin(configdir, "savegames", NULL);
         M_MakeDirectory(topdir);
 
-        // eg. ~/.chocolate-doom/savegames/doom2.wad/
+        // eg. ~/.local/share/chocolate-doom/savegames/doom2.wad/
 
         savegamedir = M_StringJoin(topdir, DIR_SEPARATOR_S, iwadname,
                                    DIR_SEPARATOR_S, NULL);
@@ -2230,3 +2779,33 @@ char *M_GetSaveGameDir(char *iwadname)
     return savegamedir;
 }
 
+//
+// Calculate the path to the directory for autoloaded WADs/DEHs.
+// Creates the directory as necessary.
+//
+char *M_GetAutoloadDir(const char *iwadname)
+{
+    char *result;
+
+    if (autoload_path == NULL || strlen(autoload_path) == 0)
+    {
+        char *prefdir;
+        prefdir = SDL_GetPrefPath("", PACKAGE_TARNAME);
+        if (prefdir == NULL)
+        {
+            printf("M_GetAutoloadDir: SDL_GetPrefPath failed\n");
+            return NULL;
+        }
+        autoload_path = M_StringJoin(prefdir, "autoload", NULL);
+        SDL_free(prefdir);
+    }
+
+    M_MakeDirectory(autoload_path);
+
+    result = M_StringJoin(autoload_path, DIR_SEPARATOR_S, iwadname, NULL);
+    M_MakeDirectory(result);
+
+    // TODO: Add README file
+
+    return result;
+}

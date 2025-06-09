@@ -5,7 +5,7 @@ AM_CFLAGS = @SDL_CFLAGS@                                           \
 
 noinst_LIBRARIES = libsetup.a
 
-SOURCE_FILES =                                  \
+libsetup_a_SOURCES =                            \
     compatibility.c   compatibility.h           \
     display.c         display.h                 \
     joystick.c        joystick.h                \
@@ -21,23 +21,22 @@ SOURCE_FILES =                                  \
     txt_keyinput.c    txt_keyinput.h            \
     txt_mouseinput.c  txt_mouseinput.h
 
-libsetup_a_SOURCES = $(SOURCE_FILES)
-
 EXTRA_DIST=                                     \
+    CMakeLists.txt                              \
     setup_icon.c
 
 appdir = $(prefix)/share/applications
-app_DATA = @PROGRAM_PREFIX@setup.desktop
+app_DATA = @PACKAGE_RDNS@.Setup.desktop
 
 CLEANFILES = $(app_DATA)
 
-@PROGRAM_PREFIX@setup.desktop : setup.desktop
-	cp setup.desktop $@
+@PACKAGE_RDNS@.Setup.desktop : Setup.desktop
+	cp Setup.desktop $@
 
-if HAVE_PYTHON
+if HAVE_ICONS
 
-setup_icon.c : $(top_builddir)/data/setup8.ico
-	$(top_builddir)/data/convert-icon $(top_builddir)/data/setup8.ico $@
+setup_icon.c : $(top_builddir)/data/setup.png
+	$(top_builddir)/data/convert-icon $(top_builddir)/data/setup.png $@
 
 endif
 

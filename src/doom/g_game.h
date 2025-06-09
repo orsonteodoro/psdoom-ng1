@@ -23,6 +23,7 @@
 #include "doomdef.h"
 #include "d_event.h"
 #include "d_ticcmd.h"
+#include "m_fixed.h"
 
 
 //
@@ -37,7 +38,7 @@ void G_InitNew (skill_t skill, int episode, int map);
 // but a warp test can start elsewhere
 void G_DeferedInitNew (skill_t skill, int episode, int map);
 
-void G_DeferedPlayDemo (char* demo);
+void G_DeferedPlayDemo (const char* demo);
 
 // Can be called by the startup code or M_Responder,
 // calls P_SetupLevel or W_EnterWorld.
@@ -49,7 +50,7 @@ void G_DoLoadGame (void);
 void G_SaveGame (int slot, char* description);
 
 // Only called by startup code.
-void G_RecordDemo (char* name);
+void G_RecordDemo (const char* name);
 
 void G_BeginRecording (void);
 
@@ -76,5 +77,12 @@ int G_VanillaVersionCode(void);
 
 extern int vanilla_savegame_limit;
 extern int vanilla_demo_limit;
+
+extern fixed_t forwardmove[2];
+extern fixed_t sidemove[2];
+
+extern boolean sendpause;
+
+
 #endif
 

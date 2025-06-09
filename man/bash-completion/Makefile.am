@@ -1,4 +1,4 @@
-bashcompletiondir=@bashcompletiondir@
+bashcompletiondir=@datadir@/bash-completion/completions
 
 BASH_COMPLETION_TEMPLATES = \
     doom.template \
@@ -6,7 +6,7 @@ BASH_COMPLETION_TEMPLATES = \
     hexen.template \
     strife.template
 
-if HAVE_PYTHON
+if HAVE_BASH_COMPLETION
 
 BASH_COMPLETION_SCRIPTLETS = \
     @PROGRAM_PREFIX@doom \
@@ -17,20 +17,28 @@ BASH_COMPLETION_SCRIPTLETS = \
 bashcompletion_DATA = $(BASH_COMPLETION_SCRIPTLETS)
 CLEANFILES = $(BASH_COMPLETION_SCRIPTLETS)
 
-MANDIR = $(top_srcdir)/man
-DOCGEN = $(MANDIR)/docgen
+DOCGEN = $(top_srcdir)/man/docgen
+DOCGEN_COMMON_ARGS = -n "@PROGRAM_SPREFIX@" -s "@PACKAGE_NAME@" -z "@PACKAGE_SHORTNAME@"
 
 @PROGRAM_PREFIX@doom: $(top_srcdir)/src $(DOCGEN) $(BASH_COMPLETION_TEMPLATES)
-	$(DOCGEN) -g doom -b doom.template $(top_srcdir)/src $(top_srcdir)/src/doom > $@
+	$(DOCGEN) $(DOCGEN_COMMON_ARGS) \
+                  -g doom -b doom.template \
+                  $(top_srcdir)/src $(top_srcdir)/src/doom > $@
 
 @PROGRAM_PREFIX@heretic: $(top_srcdir)/src $(DOCGEN) $(BASH_COMPLETION_TEMPLATES)
-	$(DOCGEN) -g heretic -b heretic.template $(top_srcdir)/src $(top_srcdir)/src/heretic > $@
+	$(DOCGEN) $(DOCGEN_COMMON_ARGS) \
+                  -g heretic -b heretic.template \
+                  $(top_srcdir)/src $(top_srcdir)/src/heretic > $@
 
 @PROGRAM_PREFIX@hexen: $(top_srcdir)/src $(DOCGEN) $(BASH_COMPLETION_TEMPLATES)
-	$(DOCGEN) -g hexen -b hexen.template $(top_srcdir)/src $(top_srcdir)/src/hexen > $@
+	$(DOCGEN) $(DOCGEN_COMMON_ARGS) \
+                  -g hexen -b hexen.template \
+                  $(top_srcdir)/src $(top_srcdir)/src/hexen > $@
 
 @PROGRAM_PREFIX@strife: $(top_srcdir)/src $(DOCGEN) $(BASH_COMPLETION_TEMPLATES)
-	$(DOCGEN) -g strife -b strife.template $(top_srcdir)/src $(top_srcdir)/src/strife > $@
+	$(DOCGEN) $(DOCGEN_COMMON_ARGS) \
+                  -g strife -b strife.template \
+                  $(top_srcdir)/src $(top_srcdir)/src/strife > $@
 
 EXTRA_DIST = \
     $(BASH_COMPLETION_TEMPLATES) \

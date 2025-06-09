@@ -25,7 +25,6 @@
 #include "r_local.h"
 #include "p_local.h"
 
-extern void CheckAbortStartup(void);
 
 typedef struct
 {
@@ -150,8 +149,6 @@ void R_GenerateComposite(int texnum)
 //
 // composite the columns together
 //
-    patch = texture->patches;
-
     for (i = 0, patch = texture->patches; i < texture->patchcount;
          i++, patch++)
     {
@@ -216,7 +213,6 @@ void R_GenerateLookup(int texnum)
 //
     patchcount = (byte *) Z_Malloc(texture->width, PU_STATIC, &patchcount);
     memset(patchcount, 0, texture->width);
-    patch = texture->patches;
 
     for (i = 0, patch = texture->patches; i < texture->patchcount;
          i++, patch++)
@@ -304,12 +300,11 @@ void R_InitTextures(void)
     int *maptex, *maptex2, *maptex1;
     char name[9], *names, *name_p;
     int *patchlookup;
-    int totalwidth;
     int nummappatches;
     int offset, maxoff, maxoff2;
     int numtextures1, numtextures2;
     int *directory;
-    char *texture1, *texture2, *pnames;
+    const char *texture1, *texture2, *pnames;
 
     texture1 = DEH_String("TEXTURE1");
     texture2 = DEH_String("TEXTURE2");
@@ -371,8 +366,6 @@ void R_InitTextures(void)
     texturewidthmask = Z_Malloc(numtextures * sizeof(int), PU_STATIC, 0);
     textureheight = Z_Malloc(numtextures * sizeof(fixed_t), PU_STATIC, 0);
 
-    totalwidth = 0;
-
     for (i = 0; i < numtextures; i++, directory++)
     {
 #ifdef __NEXT__
@@ -421,8 +414,6 @@ void R_InitTextures(void)
             j <<= 1;
         texturewidthmask[i] = j - 1;
         textureheight[i] = texture->height << FRACBITS;
-
-        totalwidth += texture->width;
     }
 
     Z_Free(patchlookup);
@@ -571,7 +562,7 @@ void R_InitData(void)
 ================
 */
 
-int R_FlatNumForName(char *name)
+int R_FlatNumForName(const char *name)
 {
     int i;
     char namet[9];
@@ -595,7 +586,7 @@ int R_FlatNumForName(char *name)
 ================
 */
 
-int R_CheckTextureNumForName(char *name)
+int R_CheckTextureNumForName(const char *name)
 {
     int i;
 
@@ -618,7 +609,7 @@ int R_CheckTextureNumForName(char *name)
 ================
 */
 
-int R_TextureNumForName(char *name)
+int R_TextureNumForName(const char *name)
 {
     int i;
     //char  namet[9];

@@ -92,7 +92,7 @@ void    P_PlayerThink (player_t* player);
 // haleyjd 08/30/10: [STRIFE] Needed externally
 void    P_Thrust (player_t* player, angle_t angle, fixed_t move);
 // villsa [STRIFE]
-char*   P_RemoveInventoryItem(player_t *player, int slot, int amount);
+const char *P_RemoveInventoryItem(player_t *player, int slot, int amount);
 
 
 //
@@ -225,6 +225,16 @@ extern fixed_t      tmceilingz;
 
 extern line_t      *ceilingline;
 extern line_t      *blockingline; // [STRIFE] New global
+
+extern int numspechit;
+extern line_t *spechit[];
+
+extern fixed_t attackrange;
+
+// slopes to top and bottom of target
+extern fixed_t topslope;
+extern fixed_t bottomslope;
+
 
 boolean P_CheckPosition (mobj_t *thing, fixed_t x, fixed_t y);
 boolean P_TryMove (mobj_t* thing, fixed_t x, fixed_t y);

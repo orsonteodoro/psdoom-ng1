@@ -30,6 +30,8 @@
 // Data.
 #include "sounds.h"
 
+//e6y
+#define STAIRS_UNINITIALIZED_CRUSH_FIELD_VALUE 10
 
 //
 // FLOORS
@@ -301,7 +303,8 @@ EV_DoFloor
 	    floor->speed = FLOORSPEED * 4;
 	    floor->floordestheight = 
 		P_FindHighestFloorSurrounding(sec);
-	    if (floor->floordestheight != sec->floorheight)
+	    if (gameversion <= exe_doom_1_2 ||
+	        floor->floordestheight != sec->floorheight)
 		floor->floordestheight += 8*FRACUNIT;
 	    break;
 
@@ -495,7 +498,10 @@ EV_BuildStairs
 	floor->floordestheight = height;
 	// Initialize
 	floor->type = lowerFloor;
-	floor->crush = true;
+	// e6y
+	// Uninitialized crush field will not be equal to 0 or 1 (true)
+	// with high probability. So, initialize it with any other value
+	floor->crush = STAIRS_UNINITIALIZED_CRUSH_FIELD_VALUE;
 		
 	texture = sec->floorpic;
 	
@@ -541,7 +547,10 @@ EV_BuildStairs
 		floor->floordestheight = height;
 		// Initialize
 		floor->type = lowerFloor;
-		floor->crush = true;
+		// e6y
+		// Uninitialized crush field will not be equal to 0 or 1 (true)
+		// with high probability. So, initialize it with any other value
+		floor->crush = STAIRS_UNINITIALIZED_CRUSH_FIELD_VALUE;
 		ok = 1;
 		break;
 	    }

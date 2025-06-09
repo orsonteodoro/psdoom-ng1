@@ -60,6 +60,7 @@ byte *rejectmatrix;             // for fast sight rejection
 
 mapthing_t deathmatchstarts[10], *deathmatch_p;
 mapthing_t playerstarts[MAXPLAYERS];
+boolean playerstartsingame[MAXPLAYERS];
 
 /*
 =================
@@ -277,6 +278,18 @@ void P_LoadThings(int lump)
         spawnthing.type = SHORT(mt->type);
         spawnthing.options = SHORT(mt->options);
         P_SpawnMapThing(&spawnthing);
+    }
+
+    if (!deathmatch)
+    {
+        for (i = 0; i < MAXPLAYERS; i++)
+        {
+            if (playeringame[i] && !playerstartsingame[i])
+            {
+                I_Error("P_LoadThings: Player %d start missing (vanilla crashes here)", i + 1);
+            }
+            playerstartsingame[i] = false;
+        }
     }
 
     W_ReleaseLumpNum(lump);
@@ -530,6 +543,7 @@ void P_GroupLines(void)
 
 //=============================================================================
 
+lumpinfo_t *maplumpinfo;
 
 /*
 =================
@@ -572,6 +586,8 @@ void P_SetupLevel(int episode, int map, int playermask, skill_t skill)
     leveltime = 0;
 
     lumpnum = W_GetNumForName(lumpname);
+
+    maplumpinfo = lumpinfo[lumpnum];
 
 // note: most of this ordering is important     
     P_LoadBlockMap(lumpnum + ML_BLOCKMAP);

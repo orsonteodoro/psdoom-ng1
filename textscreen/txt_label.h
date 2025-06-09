@@ -45,20 +45,20 @@ struct txt_label_s
 /**
  * Create a new label widget.
  *
- * @param label         String to display in the widget.
+ * @param label         String to display in the widget (UTF-8 format).
  * @return              Pointer to the new label widget.
  */
 
-txt_label_t *TXT_NewLabel(char *label);
+txt_label_t *TXT_NewLabel(const char *label);
 
 /**
  * Set the string displayed in a label widget.
  *
  * @param label         The widget.
- * @param value         The string to display.
+ * @param value         The string to display (UTF-8 format).
  */
 
-void TXT_SetLabel(txt_label_t *label, char *value);
+void TXT_SetLabel(txt_label_t *label, const char *value);
 
 /**
  * Set the background color of a label widget.

@@ -23,6 +23,7 @@
 #include "doomtype.h"
 #include "i_swap.h"
 #include "i_system.h"
+#include "m_misc.h"
 #include "midifile.h"
 
 #define HEADER_CHUNK_ID "MThd"
@@ -69,6 +70,7 @@ struct midi_track_iter_s
 {
     midi_track_t *track;
     unsigned int position;
+    unsigned int loop_point;
 };
 
 struct midi_file_s
@@ -87,7 +89,7 @@ struct midi_file_s
 // Check the header of a chunk:
 
 static boolean CheckChunkHeader(chunk_header_t *chunk,
-                                char *expected_id)
+                                const char *expected_id)
 {
     boolean result;
     
@@ -598,7 +600,7 @@ midi_file_t *MIDI_LoadFile(char *filename)
 
     // Open file
 
-    stream = fopen(filename, "rb");
+    stream = M_fopen(filename, "rb");
 
     if (stream == NULL)
     {
@@ -648,6 +650,7 @@ midi_track_iter_t *MIDI_IterateTrack(midi_file_t *file, unsigned int track)
     iter = malloc(sizeof(*iter));
     iter->track = &file->tracks[track];
     iter->position = 0;
+    iter->loop_point = 0;
 
     return iter;
 }
@@ -712,6 +715,17 @@ unsigned int MIDI_GetFileTimeDivision(midi_file_t *file)
 void MIDI_RestartIterator(midi_track_iter_t *iter)
 {
     iter->position = 0;
+    iter->loop_point = 0;
+}
+
+void MIDI_SetLoopPoint(midi_track_iter_t *iter)
+{
+    iter->loop_point = iter->position;
+}
+
+void MIDI_RestartAtLoopPoint(midi_track_iter_t *iter)
+{
+    iter->position = iter->loop_point;
 }
 
 #ifdef TEST
@@ -757,7 +771,7 @@ void PrintTrack(midi_track_t *track)
 
         if (event->delta_time > 0)
         {
-            printf("Delay: %i ticks\n", event->delta_time);
+            printf("Delay: %u ticks\n", event->delta_time);
         }
 
         printf("Event type: %s (%i)\n",
@@ -773,19 +787,19 @@ void PrintTrack(midi_track_t *track)
             case MIDI_EVENT_PROGRAM_CHANGE:
             case MIDI_EVENT_CHAN_AFTERTOUCH:
             case MIDI_EVENT_PITCH_BEND:
-                printf("\tChannel: %i\n", event->data.channel.channel);
-                printf("\tParameter 1: %i\n", event->data.channel.param1);
-                printf("\tParameter 2: %i\n", event->data.channel.param2);
+                printf("\tChannel: %u\n", event->data.channel.channel);
+                printf("\tParameter 1: %u\n", event->data.channel.param1);
+                printf("\tParameter 2: %u\n", event->data.channel.param2);
                 break;
 
             case MIDI_EVENT_SYSEX:
             case MIDI_EVENT_SYSEX_SPLIT:
-                printf("\tLength: %i\n", event->data.sysex.length);
+                printf("\tLength: %u\n", event->data.sysex.length);
                 break;
 
             case MIDI_EVENT_META:
-                printf("\tMeta type: %i\n", event->data.meta.type);
-                printf("\tLength: %i\n", event->data.meta.length);
+                printf("\tMeta type: %u\n", event->data.meta.type);
+                printf("\tLength: %u\n", event->data.meta.length);
                 break;
         }
     }
@@ -812,7 +826,7 @@ int main(int argc, char *argv[])
 
     for (i=0; i<file->num_tracks; ++i)
     {
-        printf("\n== Track %i ==\n\n", i);
+        printf("\n== Track %u ==\n\n", i);
 
         PrintTrack(&file->tracks[i]);
     }

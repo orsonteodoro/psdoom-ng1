@@ -19,8 +19,6 @@
 
 #include <stdlib.h>
 
-#include "doomfeatures.h"
-
 #include "d_main.h"
 #include "m_argv.h"
 #include "m_menu.h"
@@ -70,7 +68,6 @@ static void PlayerQuitGame(player_t *player)
 
 static void RunTic(ticcmd_t *cmds, boolean *ingame)
 {
-    extern boolean advancedemo;
     unsigned int i;
 
     // Check for player quits.
@@ -152,12 +149,15 @@ static void SaveGameSettings(net_gamesettings_t *settings)
     settings->respawn_monsters = respawnparm;
     settings->timelimit = timelimit;
 
-    settings->lowres_turn = M_CheckParm("-record") > 0
-                         && M_CheckParm("-longtics") == 0;
+    settings->lowres_turn = (M_ParmExists("-record")
+                         && !M_ParmExists("-longtics"))
+                          || M_ParmExists("-shorttics");
 }
 
 static void InitConnectData(net_connect_data_t *connect_data)
 {
+    boolean shorttics;
+
     connect_data->max_players = MAXPLAYERS;
     connect_data->drone = false;
 
@@ -194,10 +194,19 @@ static void InitConnectData(net_connect_data_t *connect_data)
     connect_data->gamemode = gamemode;
     connect_data->gamemission = gamemission;
 
+    //!
+    // @category demo
+    //
+    // Play with low turning resolution to emulate demo recording.
+    //
+
+    shorttics = M_ParmExists("-shorttics");
+
     // Are we recording a demo? Possibly set lowres turn mode
 
-    connect_data->lowres_turn = M_CheckParm("-record") > 0
-                             && M_CheckParm("-longtics") == 0;
+    connect_data->lowres_turn = (M_ParmExists("-record")
+                             && !M_ParmExists("-longtics"))
+                              || shorttics;
 
     // Read checksums of our WAD directory and dehacked information
 

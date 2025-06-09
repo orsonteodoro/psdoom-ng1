@@ -36,7 +36,7 @@ static void TXT_LabelDrawer(TXT_UNCAST_ARG(label))
     unsigned int x, y;
     int origin_x, origin_y;
     unsigned int align_indent = 0;
-    unsigned int w;
+    unsigned int w, sw;
 
     w = label->widget.w;
 
@@ -53,19 +53,19 @@ static void TXT_LabelDrawer(TXT_UNCAST_ARG(label))
 
     for (y=0; y<label->h; ++y)
     {
-        // Calculate the amount to indent this line due to the align 
+        // Calculate the amount to indent this line due to the align
         // setting
-
+        sw = TXT_UTF8_Strlen(label->lines[y]);
         switch (label->widget.align)
         {
             case TXT_HORIZ_LEFT:
                 align_indent = 0;
                 break;
             case TXT_HORIZ_CENTER:
-                align_indent = (label->w - strlen(label->lines[y])) / 2;
+                align_indent = (label->w - sw) / 2;
                 break;
             case TXT_HORIZ_RIGHT:
-                align_indent = label->w - strlen(label->lines[y]);
+                align_indent = label->w - sw;
                 break;
         }
 
@@ -82,8 +82,8 @@ static void TXT_LabelDrawer(TXT_UNCAST_ARG(label))
 
         // The string itself
 
-        TXT_DrawUTF8String(label->lines[y]);
-        x += TXT_UTF8_Strlen(label->lines[y]);
+        TXT_DrawString(label->lines[y]);
+        x += sw;
 
         // Gap at the end
 
@@ -113,7 +113,7 @@ txt_widget_class_t txt_label_class =
     NULL,
 };
 
-void TXT_SetLabel(txt_label_t *label, char *value)
+void TXT_SetLabel(txt_label_t *label, const char *value)
 {
     char *p;
     unsigned int y;
@@ -131,7 +131,7 @@ void TXT_SetLabel(txt_label_t *label, char *value)
 
     label->h = 1;
 
-    for (p = value; *p != '\0'; ++p)
+    for (p = label->label; *p != '\0'; ++p)
     {
         if (*p == '\n')
         {
@@ -168,7 +168,7 @@ void TXT_SetLabel(txt_label_t *label, char *value)
     }
 }
 
-txt_label_t *TXT_NewLabel(char *text)
+txt_label_t *TXT_NewLabel(const char *text)
 {
     txt_label_t *label;
 

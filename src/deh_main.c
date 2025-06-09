@@ -21,6 +21,7 @@
 #include <ctype.h>
 
 #include "doomtype.h"
+#include "i_glob.h"
 #include "i_system.h"
 #include "d_iwad.h"
 #include "m_argv.h"
@@ -28,9 +29,8 @@
 
 #include "deh_defs.h"
 #include "deh_io.h"
+#include "deh_main.h"
 
-extern deh_section_t *deh_section_types[];
-extern char *deh_signatures[];
 
 static boolean deh_initialized = false;
 
@@ -368,7 +368,7 @@ static void DEH_ParseContext(deh_context_t *context)
 
 // Parses a dehacked file
 
-int DEH_LoadFile(char *filename)
+int DEH_LoadFile(const char *filename)
 {
     deh_context_t *context;
 
@@ -404,6 +404,28 @@ int DEH_LoadFile(char *filename)
     }
 
     return 1;
+}
+
+// Load all dehacked patches from the given directory.
+void DEH_AutoLoadPatches(const char *path)
+{
+    const char *filename;
+    glob_t *glob;
+
+    glob = I_StartMultiGlob(path, GLOB_FLAG_NOCASE|GLOB_FLAG_SORTED,
+                            "*.deh", "*.hhe", "*.seh", NULL);
+    for (;;)
+    {
+        filename = I_NextGlob(glob);
+        if (filename == NULL)
+        {
+            break;
+        }
+        printf(" [autoload]");
+        DEH_LoadFile(filename);
+    }
+
+    I_EndGlob(glob);
 }
 
 // Load dehacked file from WAD lump.
@@ -445,7 +467,7 @@ int DEH_LoadLump(int lumpnum, boolean allow_long, boolean allow_error)
     return 1;
 }
 
-int DEH_LoadLumpByName(char *name, boolean allow_long, boolean allow_error)
+int DEH_LoadLumpByName(const char *name, boolean allow_long, boolean allow_error)
 {
     int lumpnum;
 
@@ -483,6 +505,7 @@ void DEH_ParseCommandLine(void)
         {
             filename = D_TryFindWADByName(myargv[p]);
             DEH_LoadFile(filename);
+            free(filename);
             ++p;
         }
     }

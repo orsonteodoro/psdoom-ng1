@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # 
 # Chocolate Doom self-documentation tool.  This works similar to javadoc
 # or doxygen, but documents command line parameters and configuration
@@ -35,7 +35,8 @@ import re
 import glob
 import getopt
 
-INCLUDE_STATEMENT_RE = re.compile("@include\s+(\S+)")
+TEXT_WRAP_WIDTH = 78
+INCLUDE_STATEMENT_RE = re.compile(r"@include\s+(\S+)")
 
 # Use appropriate stdout function for Python 2 or 3
 
@@ -115,6 +116,19 @@ class Category:
 
         return result
 
+    def markdown_output(self):
+        result = "## %s\n\n| Parameter | Description |\n| - | - |\n" % self.description
+
+        self.params.sort()
+
+        for p in self.params:
+            if p.should_show():
+                result += p.markdown_output()
+
+        result = result.rstrip() + "\n"
+
+        return result
+
     def completion_output(self):
         result = ""
 
@@ -157,14 +171,16 @@ class Category:
 
         return result
 
-categories = {
-    None:      Category("General options"),
-    "video":   Category("Display options"),
-    "demo":    Category("Demo options"),
-    "net":     Category("Networking options"),
-    "mod":     Category("Dehacked and WAD merging"),
-    "compat":  Category("Compatibility"),
-}
+categories = (
+    (None,      Category("General options")),
+    ("game",    Category("Game start options")),
+    ("video",   Category("Display options")),
+    ("net",     Category("Networking options")),
+    ("mod",     Category("Dehacked and WAD merging")),
+    ("demo",    Category("Demo options")),
+    ("compat",  Category("Compatibility")),
+    ("obscure", Category("Obscure and less-used options")),
+)
 
 wikipages = []
 config_files = {}
@@ -193,7 +209,7 @@ class Parameter:
         if len(text) <= 0:
             pass
         elif text[0] == "@":
-            match = re.match('@(\S+)\s*(.*)', text)
+            match = re.match(r'@(\S+)\s*(.*)', text)
 
             if not match:
                 raise "Malformed option line: %s" % text
@@ -237,7 +253,7 @@ class Parameter:
         if self.platform:
             result += "[%s only] " % self.platform
 
-        escaped = re.sub('\\\\', '\\\\\\\\', self.text)
+        escaped = re.sub(r'\\', r'\\\\', self.text)
 
         result += escaped + self._games_only_text() + "\n"
 
@@ -259,46 +275,60 @@ class Parameter:
 
         return result
 
-    def plaintext_output(self, w):
-
-        # Build the first line, with the argument on
-
-        line = "  " + self.name
+    def markdown_output(self):
         if self.args:
-            line += " " + self.args
+            name = "%s %s" % (self.name, self.args)
+        else:
+            name = "%s" % self.name
+
+        name = name.replace("|", "\\|")
+
+        text = self.text
+        if self.platform:
+            text += " (%s only)" % self.platform
+
+        text = text.replace("|", "\\|")
+
+        result = "| %s | %s |\n" % (name, text)
+
+        # html escape
+        result = result.replace("<", "&lt;")
+        result = result.replace(">", "&gt;")
+
+        return result
+
+    def plaintext_output(self, indent):
+        # Build the first line, with the argument on
+        start = "  " + self.name
+        if self.args:
+            start += " " + self.args
 
         # pad up to the plaintext width
-
-        line += " " * (w - len(line))
+        start += " " * (indent - len(start))
 
         # Build the description text
-
         description = self.text
-
         if self.platform:
             description += " (%s only)" % self.platform
-
         description += self._games_only_text()
 
         # Build the complete text for the argument
         # Split the description into words and add a word at a time
-
         result = ""
-        for word in re.split('\s+', description):
+        words = [word for word in re.split(r'\s+', description) if word]
+        maxlen = TEXT_WRAP_WIDTH - indent
+        outlines = [[]]
+        for word in words:
+            linelen = sum(len(w) + 1 for w in outlines[-1])
+            if linelen + len(word) > maxlen:
+                outlines.append([])
+            outlines[-1].append(word)
 
-            # Break onto the next line?
+        linesep = "\n" + " " * indent
 
-            if len(line) + len(word) + 1 > 75:
-                result += line + "\n"
-                line = " " * w
-
-            # Add another word
-
-            line += word + " "
-
-        result += line + "\n\n"
-
-        return result
+        return (start +
+                linesep.join(" ".join(line) for line in outlines) +
+                "\n\n")
 
     def completion_output(self, w):
 
@@ -315,9 +345,9 @@ def read_wikipages():
         for line in f:
             line = line.rstrip()
 
-            line = re.sub('\#.*$', '', line)
+            line = re.sub(r'\#.*$', '', line)
 
-            if not re.match('^\s*$', line):
+            if not re.match(r'^\s*$', line):
                 wikipages.append(line)
     finally:
         f.close()
@@ -325,10 +355,16 @@ def read_wikipages():
 # Add wiki page links
 
 def add_wiki_links(text):
+    def replace_name(m):
+        linktext = m.group(1)
+        if linktext == pagename:
+            return '[[%s]]' % pagename
+        else:
+            return '[[%s|%s]]' % (pagename, linktext)
+
     for pagename in wikipages:
-        page_re = re.compile('(%s)' % pagename, re.IGNORECASE)
-    #   text = page_re.sub("SHOES", text)
-        text = page_re.sub('[[\\1]]', text)
+        text = re.sub(r'\b(%s)\b' % re.escape(pagename), replace_name,
+                      text, count=0, flags=re.IGNORECASE)
 
     return text
 
@@ -342,17 +378,18 @@ def add_parameter(param, line, config_file):
 
     # Is this documenting a command line parameter?
 
-    match = re.search('(M_CheckParm(WithArgs)|M_ParmExists)?\s*\(\s*"(.*?)"',
+    match = re.search(r'(M_CheckParm(WithArgs)|M_ParmExists)?\s*\(\s*"(.*?)"',
                       line)
 
     if match:
         param.name = match.group(3)
-        categories[param.category].add_param(param)
+        category = dict(categories)[param.category]
+        category.add_param(param)
         return
 
     # Documenting a configuration file variable?
 
-    match = re.search('CONFIG_VARIABLE_\S+\s*\(\s*(\S+?)\),', line)
+    match = re.search(r'CONFIG_VARIABLE_\S+\s*\(\s*(\S+?)\),', line)
 
     if match:
         param.name = match.group(1)
@@ -361,11 +398,11 @@ def add_parameter(param, line, config_file):
 
     raise Exception(param.text)
 
-def process_file(file):
+def process_file(filename):
 
     current_config_file = None
 
-    f = io.open(file, encoding='UTF-8')
+    f = io.open(filename, encoding='UTF-8')
 
     try:
         param = None
@@ -376,7 +413,7 @@ def process_file(file):
 
             # Ignore empty lines
 
-            if re.match('\s*$', line):
+            if re.match(r'\s*$', line):
                 continue
 
             # Currently reading a doc comment?
@@ -384,7 +421,7 @@ def process_file(file):
             if param:
                 # End of doc comment
 
-                if not re.match('\s*//', line):
+                if not re.match(r'\s*//', line):
                     waiting_for_checkparm = True
 
                 # The first non-empty line after the documentation comment
@@ -396,14 +433,14 @@ def process_file(file):
                 else:
                     # More documentation text
 
-                    munged_line = re.sub('\s*\/\/\s*', '', line, 1)
-                    munged_line = re.sub('\s*$', '', munged_line)
+                    munged_line = re.sub(r'\s*\/\/\s*', '', line, count=1)
+                    munged_line = re.sub(r'\s*$', '', munged_line)
                     param.add_text(munged_line)
 
             # Check for start of a doc comment
 
             if re.search("//!", line):
-                match = re.search("@begin_config_file\s*(\S+)", line)
+                match = re.search(r"@begin_config_file\s*(\S+)", line)
 
                 if match:
                     # Beginning a configuration file
@@ -423,14 +460,14 @@ def process_files(path):
     if os.path.isdir(path):
         files = glob.glob(path + "/*.c")
 
-        for file in files:
-            process_file(file)
+        for filename in files:
+            process_file(filename)
     else:
         # Special case to allow a single file to be specified as a target
 
         process_file(path)
 
-def print_template(template_file, content):
+def print_template(template_file, substs, content):
     f = io.open(template_file, encoding='UTF-8')
 
     try:
@@ -438,16 +475,19 @@ def print_template(template_file, content):
             match = INCLUDE_STATEMENT_RE.search(line)
             if match:
                 filename = match.group(1)
-                print_template(filename, content)
+                filename = os.path.join(os.path.dirname(template_file),
+                                        filename)
+                print_template(filename, substs, content)
             else:
                 line = line.replace("@content", content)
+                for k,v in substs.items():
+                    line = line.replace(k,v)
                 stdout(line.rstrip().encode('UTF-8') + b'\n')
-
     finally:
         f.close()
 
-def manpage_output(targets, template_file): 
-    
+def manpage_output(targets, substs, template_file):
+
     content = ""
 
     for t in targets:
@@ -455,37 +495,49 @@ def manpage_output(targets, template_file):
 
     content = content.replace("-", "\\-")
 
-    print_template(template_file, content)
+    print_template(template_file, substs, content)
 
-def wiki_output(targets, template):
+def wiki_output(targets, _, template):
     read_wikipages()
 
     for t in targets:
         stdout(t.wiki_output().encode('UTF-8') + b'\n')
 
-def plaintext_output(targets, template_file):
+def markdown_output(targets, substs, template_file):
+    content = ""
+
+    for t in targets:
+        content += t.markdown_output() + "\n"
+
+    print_template(template_file, substs, content)
+
+def plaintext_output(targets, substs, template_file):
 
     content = ""
 
     for t in targets:
         content += t.plaintext_output() + "\n"
 
-    print_template(template_file, content)
+    print_template(template_file, substs, content)
 
-def completion_output(targets, template_file):
+def completion_output(targets, substs, template_file):
 
     content = ""
 
     for t in targets:
         content += t.completion_output() + "\n"
 
-    print_template(template_file, content)
+    print_template(template_file, substs, content)
 
 def usage():
-    print("Usage: %s [-V] [-c tag] [-g game] ( -m | -w | -p ) <dir>..." \
+    print("Usage: %s [-V] [-c tag] [-g game] -n program_name -s package_name [ -z shortname ] ( -M | -m | -w | -p ) <dir>..." \
             % sys.argv[0])
     print("   -c :  Provide documentation for the specified configuration file")
     print("         (matches the given tag name in the source file)")
+    print("   -s :  Package name, e.g. Chocolate Doom (for substitution)")
+    print("   -z :  Package short-name, e.g. Chocolate (for substitution)")
+    print("   -n :  Program name, e.g. chocolate (for substitution)")
+    print("   -M :  Markdown output")
     print("   -m :  Manpage output")
     print("   -w :  Wikitext output")
     print("   -p :  Plaintext output")
@@ -496,16 +548,26 @@ def usage():
 
 # Parse command line
 
-opts, args = getopt.getopt(sys.argv[1:], "m:wp:b:c:g:V")
+opts, args = getopt.getopt(sys.argv[1:], "n:s:z:M:m:wp:b:c:g:V")
 
 output_function = None
 template = None
 doc_config_file = None
 match_game = None
+substs = {}
 
 for opt in opts:
+    if opt[0] == "-n":
+        substs["@PROGRAM_SPREFIX@"] = opt[1]
+    if opt[0] == "-s":
+        substs["@PACKAGE_NAME@"] = opt[1]
+    if opt[0] == "-z":
+        substs["@PACKAGE_SHORTNAME@"] = opt[1]
     if opt[0] == "-m":
         output_function = manpage_output
+        template = opt[1]
+    elif opt[0] == "-M":
+        output_function = markdown_output
         template = opt[1]
     elif opt[0] == "-w":
         output_function = wiki_output
@@ -521,6 +583,12 @@ for opt in opts:
         doc_config_file = opt[1]
     elif opt[0] == "-g":
         match_game = opt[1]
+        substs["@GAME@"] = opt[1]
+        substs["@GAME_UPPER@"] = opt[1].title()
+        if "doom" == opt[1]:
+            substs["@CFGFILE@"] = "default.cfg"
+        else:
+            substs["@CFGFILE@"] = opt[1] + ".cfg"
 
 if output_function == None or len(args) < 1:
     usage()
@@ -531,19 +599,11 @@ else:
         process_files(path)
 
     # Build a list of things to document
-
-    documentation_targets = []
-
     if doc_config_file:
-        documentation_targets.append(config_files[doc_config_file])
+        documentation_targets = [config_files[doc_config_file]]
     else:
-        documentation_targets.append(categories[None])
-
-        for c in categories:
-            if c != None:
-                documentation_targets.append(categories[c])
+        documentation_targets = [c for _, c in categories]
 
     # Generate the output
-
-    output_function(documentation_targets, template)
+    output_function(documentation_targets, substs, template)
 

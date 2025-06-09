@@ -43,7 +43,7 @@ struct txt_dropdown_list_s
 {
     txt_widget_t widget;
     int *variable;
-    char **values;
+    const char **values;
     int num_values;
 };
 
@@ -57,12 +57,12 @@ struct txt_dropdown_list_s
  * @param variable        Pointer to the variable containing the
  *                        list's value.
  * @param values          Pointer to an array of strings containing
- *                        the labels to use for the list.
+ *                        the labels to use for the list (UTF-8 format).
  * @param num_values      The number of variables in the list.
  */
 
 txt_dropdown_list_t *TXT_NewDropdownList(int *variable, 
-                                         char **values, int num_values);
+                                         const char **values, int num_values);
 
 #endif /* #ifndef TXT_DROPDOWN_H */
 

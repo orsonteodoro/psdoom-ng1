@@ -31,7 +31,6 @@
 #include "doomstat.h"
 
 #include "dstrings.h"
-#include "doomfeatures.h"
 #include "sounds.h"
 
 #include "txt_main.h"
@@ -59,6 +58,7 @@
 #include "p_dialog.h" // haleyjd [STRIFE]
 
 #include "i_endoom.h"
+#include "i_input.h"
 #include "i_joystick.h"
 #include "i_system.h"
 #include "i_timer.h"
@@ -79,6 +79,8 @@
 #include "r_local.h"
 
 #include "d_main.h"
+
+#include "strife_icon.c"
 
 //
 // D-DoomLoop()
@@ -112,12 +114,6 @@ boolean         randomparm;     // [STRIFE] haleyjd 20130915: checkparm of -rand
 boolean         showintro = true;   // [STRIFE] checkparm of -nograph, disables intro
 
 
-//extern int soundVolume;
-//extern  int	sfxVolume;
-//extern  int	musicVolume;
-
-extern  boolean	inhelpscreens;
-
 skill_t		startskill;
 int             startepisode;
 int		startmap;
@@ -140,9 +136,6 @@ boolean         isdemoversion;
 // haleyjd [STRIFE] Unused.
 //boolean         storedemo;
 
-
-char		wadfile[1024];          // primary wad file
-char		mapdir[1024];           // directory of development maps
 
 int             show_endoom = 1;
 int             show_diskicon = 1;
@@ -203,9 +196,6 @@ void D_ProcessEvents (void)
 // * 20110206: Start wipegamestate at GS_UNKNOWN (STRIFE-TODO: rename?)
 //
 gamestate_t     wipegamestate = GS_UNKNOWN;
-extern  boolean setsizeneeded;
-//extern  int             showMessages; [STRIFE] no such variable
-void R_ExecuteSetViewSize (void);
 
 void D_Display (void)
 {
@@ -396,12 +386,29 @@ void D_Display (void)
 // Add configuration file variable bindings.
 //
 
+
+static const char * const chat_macro_defaults[10] =
+{
+    HUSTR_CHATMACRO0,
+    HUSTR_CHATMACRO1,
+    HUSTR_CHATMACRO2,
+    HUSTR_CHATMACRO3,
+    HUSTR_CHATMACRO4,
+    HUSTR_CHATMACRO5,
+    HUSTR_CHATMACRO6,
+    HUSTR_CHATMACRO7,
+    HUSTR_CHATMACRO8,
+    HUSTR_CHATMACRO9
+};
+
+
 void D_BindVariables(void)
 {
     int i;
 
     M_ApplyPlatformDefaults();
 
+    I_BindInputVariables();
     I_BindVideoVariables();
     I_BindJoystickVariables();
     I_BindSoundVariables();
@@ -423,9 +430,7 @@ void D_BindVariables(void)
     key_multi_msgplayer[6] = '7';
     key_multi_msgplayer[7] = '8';
 
-#ifdef FEATURE_MULTIPLAYER
     NET_BindVariables();
-#endif
 
     // haleyjd 08/29/10: [STRIFE]
     // * Added voice volume
@@ -461,6 +466,7 @@ void D_BindVariables(void)
     {
         char buf[12];
 
+        chat_macros[i] = M_StringDuplicate(chat_macro_defaults[i]);
         M_snprintf(buf, sizeof(buf), "chatmacro%i", i);
         M_BindStringVariable(buf, &chat_macros[i]);
     }
@@ -512,6 +518,7 @@ void D_DoomLoop (void)
 
     if (!showintro)
     {
+        I_RegisterWindowIcon(strife_icon_data, strife_icon_w, strife_icon_h);
         I_InitGraphics();
     }
 
@@ -554,7 +561,7 @@ void D_DoomLoop (void)
 //
 int             demosequence;
 int             pagetic;
-char                    *pagename;
+const char      *pagename;
 
 
 //
@@ -758,7 +765,7 @@ void D_QuitGame(void)
 // These are from the original source: some of them are perhaps
 // not used in any dehacked patches
 
-static char *banners[] =
+static const char *banners[] =
 {
     // strife1.wad:
 
@@ -775,7 +782,7 @@ static char *banners[] =
 static char *GetGameName(char *gamename)
 {
     size_t i;
-    char *deh_sub;
+    const char *deh_sub;
     
     for (i=0; i<arrlen(banners); ++i)
     {
@@ -844,7 +851,7 @@ void D_IdentifyVersion(void)
         // filepath.
         if((p = M_CheckParm("-iwad")) && p < myargc - 1)
         {
-            char   *iwad     = myargv[p + 1];
+            const char *iwad = myargv[p + 1];
             size_t  len      = strlen(iwad) + 1;
             char   *iwadpath = Z_Malloc(len, PU_STATIC, NULL);
             char   *voiceswad;
@@ -856,10 +863,8 @@ void D_IdentifyVersion(void)
             voiceswad = M_SafeFilePath(iwadpath, "voices.wad");
             Z_Free(iwadpath);
 
-            if(!M_FileExists(voiceswad))
-                Z_Free(voiceswad);
-            else
-                name = voiceswad; // STRIFE-FIXME: memory leak!!
+            name = M_FileCaseExists(voiceswad);
+            Z_Free(voiceswad);
         }
 
         // not found? try global search paths
@@ -878,6 +883,7 @@ void D_IdentifyVersion(void)
         {
             // add it.
             D_AddFile(name);
+            free(name);
         }
     }
 }
@@ -959,7 +965,7 @@ static boolean D_AddFile(char *filename)
 // Some dehacked mods replace these.  These are only displayed if they are 
 // replaced by dehacked.
 // haleyjd 08/22/2010: [STRIFE] altered to match strings from binary
-static char *copyright_banners[] =
+static const char *copyright_banners[] =
 {
     "===========================================================================\n"
     "ATTENTION:  This version of STRIFE has extra files added to it.\n"
@@ -984,7 +990,7 @@ void PrintDehackedBanners(void)
 
     for (i=0; i<arrlen(copyright_banners); ++i)
     {
-        char *deh_s;
+        const char *deh_s;
 
         deh_s = DEH_String(copyright_banners[i]);
 
@@ -1003,10 +1009,10 @@ void PrintDehackedBanners(void)
     }
 }
 
-static struct 
+static const struct
 {
-    char *description;
-    char *cmdline;
+    const char *description;
+    const char *cmdline;
     GameVersion_t version;
 } gameversions[] = {
     { "Strife 1.2",          "1.2",       exe_strife_1_2  },
@@ -1019,9 +1025,8 @@ static struct
 static void InitGameVersion(void)
 {
     int p;
-    int i;
 
-    // haleyjd: we support emulating either the 1.2 or the 1.31 versions of 
+    // haleyjd: we support emulating either the 1.2 or the 1.31 versions of
     // Strife, which are the most significant. 1.2 is the most mature version
     // that still has the single saveslot restriction, whereas 1.31 is the
     // final revision. The differences between the two are barely worth
@@ -1038,6 +1043,7 @@ static void InitGameVersion(void)
 
     if (p)
     {
+        int i;
         for (i=0; gameversions[i].description != NULL; ++i)
         {
             if (!strcmp(myargv[p+1], gameversions[i].cmdline))
@@ -1047,7 +1053,7 @@ static void InitGameVersion(void)
             }
         }
 
-        if (gameversions[i].description == NULL) 
+        if (gameversions[i].description == NULL)
         {
             printf("Supported game versions:\n");
 
@@ -1147,7 +1153,7 @@ static void D_SetChar(char c)
 //
 // D_DrawText
 //
-static void D_DrawText(char *string, int bc, int fc)
+static void D_DrawText(const char *string, int bc, int fc)
 {
     int column;
     int row;
@@ -1284,6 +1290,7 @@ static void D_InitIntroSequence(void)
         // In vanilla Strife, Mode 13h was initialized directly in D_DoomMain.
         // We have to be a little more courteous of the low-level code here.
         I_SetGrabMouseCallback(D_StartupGrabCallback);
+        I_RegisterWindowIcon(strife_icon_data, strife_icon_h, strife_icon_w);
         I_InitGraphics();
         V_RestoreBuffer(); // make the V_ routines work
 
@@ -1515,7 +1522,6 @@ void D_DoomMain (void)
     //DEH_printf("Z_Init: Init zone memory allocation daemon. \n"); [STRIFE] removed
     Z_Init ();
 
-#ifdef FEATURE_MULTIPLAYER
     //!
     // @category net
     //
@@ -1572,9 +1578,8 @@ void D_DoomMain (void)
         exit(0);
     }
 
-#endif
-
     //!
+    // @category game
     // @vanilla
     //
     // Disable monsters.
@@ -1583,6 +1588,7 @@ void D_DoomMain (void)
     nomonsters = M_CheckParm ("-nomonsters");
 
     //!
+    // @category obscure
     // @vanilla
     //
     // Set Rogue playtesting mode (godmode, noclip toggled by backspace)
@@ -1591,6 +1597,7 @@ void D_DoomMain (void)
     workparm = M_CheckParm ("-work");
 
     //!
+    // @category obscure
     // @vanilla
     //
     // Flip player gun sprites (broken).
@@ -1599,6 +1606,7 @@ void D_DoomMain (void)
     flipparm = M_CheckParm ("-flip");
 
     //!
+    // @category game
     // @vanilla
     //
     // Respawn monsters after they are killed.
@@ -1607,6 +1615,7 @@ void D_DoomMain (void)
     respawnparm = M_CheckParm ("-respawn");
 
     //!
+    // @category game
     // @vanilla
     //
     // Items respawn at random locations
@@ -1615,6 +1624,7 @@ void D_DoomMain (void)
     randomparm = M_CheckParm ("-random");
 
     //!
+    // @category game
     // @vanilla
     //
     // Monsters move faster.
@@ -1651,6 +1661,7 @@ void D_DoomMain (void)
 #ifdef _WIN32
 
     //!
+    // @category obscure
     // @platform windows
     // @vanilla
     //
@@ -1674,6 +1685,7 @@ void D_DoomMain (void)
     }
     
     //!
+    // @category game
     // @arg <x>
     // @vanilla
     //
@@ -1684,8 +1696,6 @@ void D_DoomMain (void)
     if ( (p=M_CheckParm ("-turbo")) )
     {
         int     scale = 200;
-        extern int forwardmove[2];
-        extern int sidemove[2];
 
         if (p<myargc-1)
             scale = atoi (myargv[p+1]);
@@ -1730,11 +1740,27 @@ void D_DoomMain (void)
         DEH_printf("W_Init: Init WADfiles.\n");
     D_AddFile(iwadfile);
     W_CheckCorrectIWAD(strife);
+    D_IdentifyVersion();
 
-#ifdef FEATURE_DEHACKED
+    //!
+    // @category mod
+    //
+    // Disable auto-loading of .wad files.
+    //
+    if (!M_ParmExists("-noautoload"))
+    {
+        char *autoload_dir;
+        autoload_dir = M_GetAutoloadDir("strife1.wad");
+        if (autoload_dir != NULL)
+        {
+            DEH_AutoLoadPatches(autoload_dir);
+            W_AutoLoadWADs(autoload_dir);
+            free(autoload_dir);
+        }
+    }
+
     // Load dehacked patches specified on the command line.
     DEH_ParseCommandLine();
-#endif
 
     // Load PWAD files.
     modifiedgame = W_ParseCommandLine();
@@ -1821,8 +1847,7 @@ void D_DoomMain (void)
     // Generate the WAD hash table.  Speed things up a bit.
 
     W_GenerateHashTable();
-    
-    D_IdentifyVersion();
+
     InitGameVersion();
     InitTitleString();
     D_SetGameDescription();
@@ -1832,14 +1857,12 @@ void D_DoomMain (void)
     // fraggle 20130405: I_InitTimer is needed here for the netgame
     // startup. Start low-level sound init here too.
     I_InitTimer();
-    I_InitSound(true);
+    I_InitSound(strife);
     I_InitMusic();
 
-#ifdef FEATURE_MULTIPLAYER
     if(devparm) // [STRIFE]
         printf ("NET_Init: Init network subsystem.\n");
     NET_Init();
-#endif
     D_ConnectNetGame();
 
     // haleyjd 20110210: Create Strife hub save folders
@@ -1892,6 +1915,7 @@ void D_DoomMain (void)
     autostart = false;
 
     //!
+    // @category game
     // @arg <skill>
     // @vanilla
     //
@@ -1909,6 +1933,7 @@ void D_DoomMain (void)
 
     // [STRIFE] no such thing in Strife
     //
+    // // @category game
     // // @arg <n>
     // // @vanilla
     // //
@@ -1957,6 +1982,7 @@ void D_DoomMain (void)
     }
 
     //!
+    // @category game
     // @arg x
     // @vanilla
     //
@@ -1997,6 +2023,7 @@ void D_DoomMain (void)
     // can override it or send the load slot to other players.
 
     //!
+    // @category game
     // @arg <s>
     // @vanilla
     //

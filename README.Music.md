@@ -12,7 +12,7 @@ dialog in the setup tool.
 # Timidity
 
 Timidity is a software-based MIDI synthesizer, and a version of it is
-included in the SDL_mixer library used by Chocolate Doom. To use
+included in the SDL2_mixer library used by Chocolate Doom. To use
 Timidity for MIDI playback, first download a sound font. An example of
 a good quality sound font is the eawpats font, which can be downloaded
 from the idgames archive as sounds/eawpats.zip:
@@ -43,6 +43,13 @@ from the idgames archive as music/dgguspat.zip:
 Having downloaded the patches, select “GUS (emulated)” in the sound
 configuration dialog in the setup tool, and use the “GUS patch path”
 widget to enter the path to the directory containing the patch files.
+
+For the music not to sound weird, you will almost certainly want to
+load gusgonna.wad (sounds/gusgonna.zip in the idgames archive) when
+you run the game, to work around a bug in vanilla Doom's instrument
+mappings parser:
+
+  https://www.doomworld.com/idgames/sounds/gusgonna
 
 By default a GUS card with 1024KB is simulated; to simulate a 256KB,
 512KB or 768KB card instead, change the gus_ram_kb option in
@@ -105,20 +112,12 @@ allow access to it. To do hardware OPL, Chocolate Doom must access
 the chip directly, which is usually not possible in modern operating
 systems unless you are running as the superuser (root/Administrator).
 
-### Windows 9x
+### Microsoft Windows
 
-If you’re running Windows 95, 98 or Me, there is no need to configure
-anything. Windows allows direct access to the OPL chip. You can
-confirm that hardware OPL is working by checking for this message in
-stdout.txt:
-
-    OPL_Init: Using driver 'Win32'.
-
-### Windows NT (including 2000, XP and later)
-
-If you’re running an NT-based system, it is not possible to directly
-access the OPL chip, even when running as Administrator. Fortunately,
-it is possible to use the “ioperm.sys” driver developed for Cygwin:
+On modern Windows systems it is not possible to directly access the
+OPL chip, even when running as Administrator. Fortunately, it is
+possible to use the “ioperm.sys” driver developed for Cygwin (look for
+iopermsys-0.2.1.tar.bz2):
 
   http://openwince.sourceforge.net/ioperm/
 

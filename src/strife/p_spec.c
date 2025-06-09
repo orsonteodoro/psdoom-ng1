@@ -143,8 +143,8 @@ anim_t* lastanim;
 // haleyjd 08/29/10: [STRIFE] MAXLINEANIMS raised from 64 to 96
 #define MAXLINEANIMS            96
 
-extern  short   numlinespecials;
-extern  line_t* linespeciallist[MAXLINEANIMS];
+short   numlinespecials = 0;
+line_t *linespeciallist[MAXLINEANIMS];
 
 
 
@@ -157,7 +157,7 @@ void P_InitPicAnims (void)
     lastanim = anims;
     for (i=0 ; animdefs[i].istexture != -1 ; i++)
     {
-        char *startname, *endname;
+        const char *startname, *endname;
 
         startname = DEH_String(animdefs[i].startname);
         endname = DEH_String(animdefs[i].endname);
@@ -196,7 +196,7 @@ void P_InitPicAnims (void)
 // villsa [STRIFE] terrain type definitions
 typedef struct
 {
-    char*   flat;
+    const char *flat;
     int     type;
     int     num;
 } terraintype_t;
@@ -1681,8 +1681,6 @@ static void DonutOverrun(fixed_t *s3_floorheight, short *s3_floorpic,
     static int tmp_s3_floorheight;
     static int tmp_s3_floorpic;
 
-    extern int numflats;
-
     if (first)
     {
         int p;
@@ -1865,8 +1863,6 @@ int EV_DoDonut(line_t*	line)
 // After the map has been loaded, scan for specials
 //  that spawn thinkers
 //
-short		numlinespecials;
-line_t*		linespeciallist[MAXLINEANIMS];
 
 
 // Parses command line parameters.

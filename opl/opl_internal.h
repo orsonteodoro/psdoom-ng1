@@ -36,7 +36,7 @@ typedef void (*opl_adjust_callbacks_func)(float value);
 
 typedef struct
 {
-    char *name;
+    const char *name;
 
     opl_init_func init_func;
     opl_shutdown_func shutdown_func;
@@ -53,6 +53,19 @@ typedef struct
 // Sample rate to use when doing software emulation.
 
 extern unsigned int opl_sample_rate;
+
+
+#if (defined(__i386__) || defined(__x86_64__)) && defined(HAVE_IOPERM)
+extern opl_driver_t opl_linux_driver;
+#endif
+#if defined(HAVE_LIBI386) || defined(HAVE_LIBAMD64)
+extern opl_driver_t opl_openbsd_driver;
+#endif
+#ifdef _WIN32
+extern opl_driver_t opl_win32_driver;
+#endif
+extern opl_driver_t opl_sdl_driver;
+
 
 #endif /* #ifndef OPL_INTERNAL_H */
 

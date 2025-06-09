@@ -60,21 +60,26 @@ char *SV_Filename(int slot)
 
 void SV_Open(char *fileName)
 {
-    SaveGameFP = fopen(fileName, "wb");
+    SaveGameFP = M_fopen(fileName, "wb");
 }
 
 void SV_OpenRead(char *filename)
 {
-    SaveGameFP = fopen(filename, "rb");
+    SaveGameFP = M_fopen(filename, "rb");
+
+    if (SaveGameFP == NULL)
+    {
+        I_Error("Could not load savegame %s", filename);
+    }
 }
 
 //==========================================================================
 //
-// SV_Close
+// SV_WriteSaveGameEOF
 //
 //==========================================================================
 
-void SV_Close(char *fileName)
+void SV_WriteSaveGameEOF(void)
 {
     SV_WriteByte(SAVE_GAME_TERMINATOR);
 
@@ -84,8 +89,21 @@ void SV_Close(char *fileName)
     {
         I_Error("Savegame buffer overrun");
     }
+}
 
-    fclose(SaveGameFP);
+//==========================================================================
+//
+// SV_Close
+//
+//==========================================================================
+
+void SV_Close(void)
+{
+    if (SaveGameFP)
+    {
+        fclose(SaveGameFP);
+        SaveGameFP = NULL;
+    }
 }
 
 //==========================================================================
@@ -116,9 +134,9 @@ void SV_WriteLong(unsigned int val)
     SV_Write(&val, sizeof(int));
 }
 
-void SV_WritePtr(void *ptr)
+void SV_WritePtr(const void *ptr)
 {
-    long val = (long) ptr;
+    long val = (long)(intptr_t) ptr;
 
     SV_WriteLong(val & 0xffffffff);
 }
@@ -131,7 +149,12 @@ void SV_WritePtr(void *ptr)
 
 void SV_Read(void *buffer, int size)
 {
-    fread(buffer, size, 1, SaveGameFP);
+    int retval = fread(buffer, 1, size, SaveGameFP);
+    if (retval != size)
+    {
+        I_Error("Incomplete read in SV_Read: Expected %d, got %d bytes",
+            size, retval);
+    }
 }
 
 byte SV_ReadByte(void)
@@ -399,8 +422,8 @@ static void saveg_read_player_t(player_t *str)
         str->powers[i] = SV_ReadLong();
     }
 
-    // boolean keys[NUMKEYS];
-    for (i=0; i<NUMKEYS; ++i)
+    // boolean keys[NUM_KEY_TYPES];
+    for (i = 0; i < NUM_KEY_TYPES; ++i)
     {
         str->keys[i] = SV_ReadLong();
     }
@@ -569,7 +592,7 @@ static void saveg_write_player_t(player_t *str)
     }
 
     // boolean keys[NUMKEYS];
-    for (i=0; i<NUMKEYS; ++i)
+    for (i = 0; i < NUM_KEY_TYPES; ++i)
     {
         SV_WriteLong(str->keys[i]);
     }

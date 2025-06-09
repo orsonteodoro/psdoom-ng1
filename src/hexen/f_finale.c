@@ -25,6 +25,8 @@
 #include <ctype.h>
 #include "v_video.h"
 #include "i_swap.h"
+#include "am_map.h"
+
 
 // MACROS ------------------------------------------------------------------
 
@@ -47,9 +49,6 @@ static void FadePic(void);
 static char *GetFinaleText(int sequence);
 
 // EXTERNAL DATA DECLARATIONS ----------------------------------------------
-
-extern boolean automapactive;
-extern boolean viewactive;
 
 // PUBLIC DATA DECLARATIONS ------------------------------------------------
 
@@ -366,10 +365,10 @@ void F_Drawer(void)
 
 static char *GetFinaleText(int sequence)
 {
-    char *msgLumpName;
+    const char *msgLumpName;
     int msgSize;
     int msgLump;
-    static char *winMsgLumpNames[] = {
+    static const char *winMsgLumpNames[] = {
         "win1msg",
         "win2msg",
         "win3msg"

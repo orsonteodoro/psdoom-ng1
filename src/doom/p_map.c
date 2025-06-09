@@ -830,10 +830,6 @@ fixed_t		attackrange;
 
 fixed_t		aimslope;
 
-// slopes to top and bottom of target
-extern fixed_t	topslope;
-extern fixed_t	bottomslope;	
-
 
 //
 // PTR_AimTraverse
@@ -1317,7 +1313,8 @@ boolean PIT_ChangeSector (mobj_t*	thing)
     {
 	P_SetMobjState (thing, S_GIBS);
 
-	thing->flags &= ~MF_SOLID;
+    if (gameversion > exe_doom_1_2)
+	    thing->flags &= ~MF_SOLID;
 	thing->height = 0;
 	thing->radius = 0;
 

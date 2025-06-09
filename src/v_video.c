@@ -20,6 +20,7 @@
 //
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <math.h>
 
@@ -28,6 +29,7 @@
 #include "doomtype.h"
 
 #include "deh_str.h"
+#include "i_input.h"
 #include "i_swap.h"
 #include "i_video.h"
 #include "m_bbox.h"
@@ -55,7 +57,7 @@ byte *xlatab = NULL;
 
 // The screen buffer that the v_video.c code draws to.
 
-static byte *dest_screen = NULL;
+static pixel_t *dest_screen = NULL;
 
 int dirtybox[4]; 
 
@@ -82,12 +84,12 @@ void V_MarkRect(int x, int y, int width, int height)
 //
 // V_CopyRect 
 // 
-void V_CopyRect(int srcx, int srcy, byte *source,
+void V_CopyRect(int srcx, int srcy, pixel_t *source,
                 int width, int height,
                 int destx, int desty)
 { 
-    byte *src;
-    byte *dest; 
+    pixel_t *src;
+    pixel_t *dest;
  
 #ifdef RANGECHECK 
     if (srcx < 0
@@ -141,8 +143,8 @@ void V_DrawPatch(int x, int y, patch_t *patch)
     int count;
     int col;
     column_t *column;
-    byte *desttop;
-    byte *dest;
+    pixel_t *desttop;
+    pixel_t *dest;
     byte *source;
     int w;
 
@@ -205,8 +207,8 @@ void V_DrawPatchFlipped(int x, int y, patch_t *patch)
     int count;
     int col; 
     column_t *column; 
-    byte *desttop;
-    byte *dest;
+    pixel_t *desttop;
+    pixel_t *dest;
     byte *source; 
     int w; 
  
@@ -280,7 +282,8 @@ void V_DrawTLPatch(int x, int y, patch_t * patch)
 {
     int count, col;
     column_t *column;
-    byte *desttop, *dest, *source;
+    pixel_t *desttop, *dest;
+    byte *source;
     int w;
 
     y -= SHORT(patch->topoffset);
@@ -312,7 +315,7 @@ void V_DrawTLPatch(int x, int y, patch_t * patch)
 
             while (count--)
             {
-                *dest = tinttable[((*dest) << 8) + *source++];
+                *dest = tinttable[*dest + ((*source++) << 8)];
                 dest += SCREENWIDTH;
             }
             column = (column_t *) ((byte *) column + column->length + 4);
@@ -330,7 +333,8 @@ void V_DrawXlaPatch(int x, int y, patch_t * patch)
 {
     int count, col;
     column_t *column;
-    byte *desttop, *dest, *source;
+    pixel_t *desttop, *dest;
+    byte *source;
     int w;
 
     y -= SHORT(patch->topoffset);
@@ -379,7 +383,8 @@ void V_DrawAltTLPatch(int x, int y, patch_t * patch)
 {
     int count, col;
     column_t *column;
-    byte *desttop, *dest, *source;
+    pixel_t *desttop, *dest;
+    byte *source;
     int w;
 
     y -= SHORT(patch->topoffset);
@@ -429,8 +434,9 @@ void V_DrawShadowedPatch(int x, int y, patch_t *patch)
 {
     int count, col;
     column_t *column;
-    byte *desttop, *dest, *source;
-    byte *desttop2, *dest2;
+    pixel_t *desttop, *dest;
+    byte *source;
+    pixel_t *desttop2, *dest2;
     int w;
 
     y -= SHORT(patch->topoffset);
@@ -500,9 +506,9 @@ void V_LoadXlaTable(void)
 // Draw a linear block of pixels into the view buffer.
 //
 
-void V_DrawBlock(int x, int y, int width, int height, byte *src) 
+void V_DrawBlock(int x, int y, int width, int height, pixel_t *src)
 { 
-    byte *dest; 
+    pixel_t *dest;
  
 #ifdef RANGECHECK 
     if (x < 0
@@ -528,7 +534,7 @@ void V_DrawBlock(int x, int y, int width, int height, byte *src)
 
 void V_DrawFilledBox(int x, int y, int w, int h, int c)
 {
-    uint8_t *buf, *buf1;
+    pixel_t *buf, *buf1;
     int x1, y1;
 
     buf = I_VideoBuffer + SCREENWIDTH * y + x;
@@ -548,7 +554,7 @@ void V_DrawFilledBox(int x, int y, int w, int h, int c)
 
 void V_DrawHorizLine(int x, int y, int w, int c)
 {
-    uint8_t *buf;
+    pixel_t *buf;
     int x1;
 
     buf = I_VideoBuffer + SCREENWIDTH * y + x;
@@ -561,7 +567,7 @@ void V_DrawHorizLine(int x, int y, int w, int c)
 
 void V_DrawVertLine(int x, int y, int h, int c)
 {
-    uint8_t *buf;
+    pixel_t *buf;
     int y1;
 
     buf = I_VideoBuffer + SCREENWIDTH * y + x;
@@ -586,9 +592,9 @@ void V_DrawBox(int x, int y, int w, int h, int c)
 // to the screen)
 //
  
-void V_DrawRawScreen(byte *raw)
+void V_DrawRawScreen(pixel_t *raw)
 {
-    memcpy(dest_screen, raw, SCREENWIDTH * SCREENHEIGHT);
+    memcpy(dest_screen, raw, SCREENWIDTH * SCREENHEIGHT * sizeof(*dest_screen));
 }
 
 //
@@ -603,7 +609,7 @@ void V_Init (void)
 
 // Set the buffer that the code draws to.
 
-void V_UseBuffer(byte *buffer)
+void V_UseBuffer(pixel_t *buffer)
 {
     dest_screen = buffer;
 }
@@ -650,7 +656,7 @@ typedef PACKED_STRUCT (
 // WritePCXfile
 //
 
-void WritePCXfile(char *filename, byte *data,
+void WritePCXfile(char *filename, pixel_t *data,
                   int width, int height,
                   byte *palette)
 {
@@ -669,8 +675,8 @@ void WritePCXfile(char *filename, byte *data,
     pcx->ymin = 0;
     pcx->xmax = SHORT(width-1);
     pcx->ymax = SHORT(height-1);
-    pcx->hres = SHORT(width);
-    pcx->vres = SHORT(height);
+    pcx->hres = SHORT(1);
+    pcx->vres = SHORT(1);
     memset (pcx->palette,0,sizeof(pcx->palette));
     pcx->reserved = 0;                  // PCX spec: reserved byte must be zero
     pcx->color_planes = 1;		// chunky image
@@ -719,8 +725,8 @@ static void warning_fn(png_structp p, png_const_charp s)
     printf("libpng warning: %s\n", s);
 }
 
-void WritePNGfile(char *filename, byte *data,
-                  int inwidth, int inheight,
+void WritePNGfile(char *filename, pixel_t *data,
+                  int width, int height,
                   byte *palette)
 {
     png_structp ppng;
@@ -728,14 +734,25 @@ void WritePNGfile(char *filename, byte *data,
     png_colorp pcolor;
     FILE *handle;
     int i, j;
-    int width, height;
+    int w_factor, h_factor;
     byte *rowbuf;
 
-    // scale up to accommodate aspect ratio correction
-    width = inwidth * 5;
-    height = inheight * 6;
+    if (aspect_ratio_correct == 1)
+    {
+        // scale up to accommodate aspect ratio correction
+        w_factor = 5;
+        h_factor = 6;
 
-    handle = fopen(filename, "wb");
+        width *= w_factor;
+        height *= h_factor;
+    }
+    else
+    {
+        w_factor = 1;
+        h_factor = 1;
+    }
+
+    handle = M_fopen(filename, "wb");
     if (!handle)
     {
         return;
@@ -745,12 +762,14 @@ void WritePNGfile(char *filename, byte *data,
                                    error_fn, warning_fn);
     if (!ppng)
     {
+        fclose(handle);
         return;
     }
 
     pinfo = png_create_info_struct(ppng);
     if (!pinfo)
     {
+        fclose(handle);
         png_destroy_write_struct(&ppng, NULL);
         return;
     }
@@ -764,6 +783,7 @@ void WritePNGfile(char *filename, byte *data,
     pcolor = malloc(sizeof(*pcolor) * 256);
     if (!pcolor)
     {
+        fclose(handle);
         png_destroy_write_struct(&ppng, &pinfo);
         return;
     }
@@ -789,11 +809,11 @@ void WritePNGfile(char *filename, byte *data,
             // expand the row 5x
             for (j = 0; j < SCREENWIDTH; j++)
             {
-                memset(rowbuf + j * 5, *(data + i*SCREENWIDTH + j), 5);
+                memset(rowbuf + j * w_factor, *(data + i*SCREENWIDTH + j), w_factor);
             }
 
             // write the row 6 times
-            for (j = 0; j < 6; j++)
+            for (j = 0; j < h_factor; j++)
             {
                 png_write_row(ppng, rowbuf);
             }
@@ -812,16 +832,15 @@ void WritePNGfile(char *filename, byte *data,
 // V_ScreenShot
 //
 
-void V_ScreenShot(char *format)
+void V_ScreenShot(const char *format)
 {
     int i;
     char lbmname[16]; // haleyjd 20110213: BUG FIX - 12 is too small!
-    char *ext;
+    const char *ext;
     
     // find a file name to save it to
 
 #ifdef HAVE_LIBPNG
-    extern int png_screenshots;
     if (png_screenshots)
     {
         ext = "png";
@@ -844,7 +863,16 @@ void V_ScreenShot(char *format)
 
     if (i == 100)
     {
-        I_Error ("V_ScreenShot: Couldn't create a PCX");
+#ifdef HAVE_LIBPNG
+        if (png_screenshots)
+        {
+            I_Error ("V_ScreenShot: Couldn't create a PNG");
+        }
+        else
+#endif
+        {
+            I_Error ("V_ScreenShot: Couldn't create a PCX");
+        }
     }
 
 #ifdef HAVE_LIBPNG
@@ -866,71 +894,30 @@ void V_ScreenShot(char *format)
 
 #define MOUSE_SPEED_BOX_WIDTH  120
 #define MOUSE_SPEED_BOX_HEIGHT 9
+#define MOUSE_SPEED_BOX_X (SCREENWIDTH - MOUSE_SPEED_BOX_WIDTH - 10)
+#define MOUSE_SPEED_BOX_Y 15
 
 //
 // V_DrawMouseSpeedBox
 //
 
-// If box is only to calibrate speed, testing relative speed (as a measure
-// of game pixels to movement units) is important whether physical mouse DPI
-// is high or low. Line resolution starts at 1 pixel per 1 move-unit: if
-// line maxes out, resolution becomes 1 pixel per 2 move-units, then per
-// 3 move-units, etc.
-
-static int linelen_multiplier = 1;
-
-void V_DrawMouseSpeedBox(int speed)
+static void DrawAcceleratingBox(int speed)
 {
-    extern int usemouse;
-    int bgcolor, bordercolor, red, black, white, yellow;
-    int box_x, box_y;
+    int red, white, yellow;
     int original_speed;
     int redline_x;
     int linelen;
-    int i;
-    boolean draw_acceleration = false;
 
-    // Get palette indices for colors for widget. These depend on the
-    // palette of the game being played.
-
-    bgcolor = I_GetPaletteIndex(0x77, 0x77, 0x77);
-    bordercolor = I_GetPaletteIndex(0x55, 0x55, 0x55);
     red = I_GetPaletteIndex(0xff, 0x00, 0x00);
-    black = I_GetPaletteIndex(0x00, 0x00, 0x00);
-    yellow = I_GetPaletteIndex(0xff, 0xff, 0x00);
     white = I_GetPaletteIndex(0xff, 0xff, 0xff);
-
-    // If the mouse is turned off, don't draw the box at all.
-    if (!usemouse)
-    {
-        return;
-    }
-
-    // If acceleration is used, draw a box that helps to calibrate the
-    // threshold point.
-    if (mouse_threshold > 0 && fabs(mouse_acceleration - 1) > 0.01)
-    {
-        draw_acceleration = true;
-    }
-
-    // Calculate box position
-
-    box_x = SCREENWIDTH - MOUSE_SPEED_BOX_WIDTH - 10;
-    box_y = 15;
-
-    V_DrawFilledBox(box_x, box_y,
-                    MOUSE_SPEED_BOX_WIDTH, MOUSE_SPEED_BOX_HEIGHT, bgcolor);
-    V_DrawBox(box_x, box_y,
-              MOUSE_SPEED_BOX_WIDTH, MOUSE_SPEED_BOX_HEIGHT, bordercolor);
+    yellow = I_GetPaletteIndex(0xff, 0xff, 0x00);
 
     // Calculate the position of the red threshold line when calibrating
     // acceleration.  This is 1/3 of the way along the box.
 
     redline_x = MOUSE_SPEED_BOX_WIDTH / 3;
 
-    // Calculate line length
-
-    if (draw_acceleration && speed >= mouse_threshold)
+    if (speed >= mouse_threshold)
     {
         // Undo acceleration and get back the original mouse speed
         original_speed = speed - mouse_threshold;
@@ -941,50 +928,96 @@ void V_DrawMouseSpeedBox(int speed)
     }
     else
     {
-        linelen = speed / linelen_multiplier;
+        linelen = (speed * redline_x) / mouse_threshold;
     }
 
-    // Draw horizontal "thermometer" 
-
+    // Horizontal "thermometer"
     if (linelen > MOUSE_SPEED_BOX_WIDTH - 1)
     {
         linelen = MOUSE_SPEED_BOX_WIDTH - 1;
-        if (!draw_acceleration)
-        {
-            linelen_multiplier++;
-        }
     }
 
-    V_DrawHorizLine(box_x + 1, box_y + 4, MOUSE_SPEED_BOX_WIDTH - 2, black);
-
-    if (!draw_acceleration || linelen < redline_x)
+    if (linelen < redline_x)
     {
-        V_DrawHorizLine(box_x + 1, box_y + MOUSE_SPEED_BOX_HEIGHT / 2,
+        V_DrawHorizLine(MOUSE_SPEED_BOX_X + 1,
+                        MOUSE_SPEED_BOX_Y + MOUSE_SPEED_BOX_HEIGHT / 2,
                         linelen, white);
     }
     else
     {
-        V_DrawHorizLine(box_x + 1, box_y + MOUSE_SPEED_BOX_HEIGHT / 2,
+        V_DrawHorizLine(MOUSE_SPEED_BOX_X + 1,
+                        MOUSE_SPEED_BOX_Y + MOUSE_SPEED_BOX_HEIGHT / 2,
                         redline_x, white);
-        V_DrawHorizLine(box_x + redline_x, box_y + MOUSE_SPEED_BOX_HEIGHT / 2,
+        V_DrawHorizLine(MOUSE_SPEED_BOX_X + redline_x,
+                        MOUSE_SPEED_BOX_Y + MOUSE_SPEED_BOX_HEIGHT / 2,
                         linelen - redline_x, yellow);
     }
 
-    if (draw_acceleration)
+    // Draw acceleration threshold line
+    V_DrawVertLine(MOUSE_SPEED_BOX_X + redline_x, MOUSE_SPEED_BOX_Y + 1,
+                   MOUSE_SPEED_BOX_HEIGHT - 2, red);
+}
+
+// Highest seen mouse turn speed. We scale the range of the thermometer
+// according to this value, so that it never exceeds the range. Initially
+// this is set to a 1:1 setting where 1 pixel = 1 unit of speed.
+static int max_seen_speed = MOUSE_SPEED_BOX_WIDTH - 1;
+
+static void DrawNonAcceleratingBox(int speed)
+{
+    int white;
+    int linelen;
+
+    white = I_GetPaletteIndex(0xff, 0xff, 0xff);
+
+    if (speed > max_seen_speed)
     {
-        // Draw acceleration threshold line
-        V_DrawVertLine(box_x + redline_x, box_y + 1,
-                       MOUSE_SPEED_BOX_HEIGHT - 2, red);
+        max_seen_speed = speed;
+    }
+
+    // Draw horizontal "thermometer":
+    linelen = speed * (MOUSE_SPEED_BOX_WIDTH - 1) / max_seen_speed;
+
+    V_DrawHorizLine(MOUSE_SPEED_BOX_X + 1,
+                    MOUSE_SPEED_BOX_Y + MOUSE_SPEED_BOX_HEIGHT / 2,
+                    linelen, white);
+}
+
+void V_DrawMouseSpeedBox(int speed)
+{
+    int bgcolor, bordercolor, black;
+
+    // If the mouse is turned off, don't draw the box at all.
+    if (!usemouse)
+    {
+        return;
+    }
+
+    // Get palette indices for colors for widget. These depend on the
+    // palette of the game being played.
+
+    bgcolor = I_GetPaletteIndex(0x77, 0x77, 0x77);
+    bordercolor = I_GetPaletteIndex(0x55, 0x55, 0x55);
+    black = I_GetPaletteIndex(0x00, 0x00, 0x00);
+
+    // Calculate box position
+
+    V_DrawFilledBox(MOUSE_SPEED_BOX_X, MOUSE_SPEED_BOX_Y,
+                    MOUSE_SPEED_BOX_WIDTH, MOUSE_SPEED_BOX_HEIGHT, bgcolor);
+    V_DrawBox(MOUSE_SPEED_BOX_X, MOUSE_SPEED_BOX_Y,
+              MOUSE_SPEED_BOX_WIDTH, MOUSE_SPEED_BOX_HEIGHT, bordercolor);
+    V_DrawHorizLine(MOUSE_SPEED_BOX_X + 1, MOUSE_SPEED_BOX_Y + 4,
+                    MOUSE_SPEED_BOX_WIDTH - 2, black);
+
+    // If acceleration is used, draw a box that helps to calibrate the
+    // threshold point.
+    if (mouse_threshold > 0 && fabs(mouse_acceleration - 1) > 0.01)
+    {
+        DrawAcceleratingBox(speed);
     }
     else
     {
-        // Draw multiplier lines to indicate current resolution
-        for (i = 1; i < linelen_multiplier; i++)
-        {
-            V_DrawVertLine(
-                box_x + (i * MOUSE_SPEED_BOX_WIDTH / linelen_multiplier),
-                box_y + 1, MOUSE_SPEED_BOX_HEIGHT - 2, yellow);
-        }
+        DrawNonAcceleratingBox(speed);
     }
 }
 

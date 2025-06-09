@@ -44,13 +44,13 @@ static const iwad_t **iwads;
 
 typedef struct
 {
-    char *label;
+    const char *label;
     GameMission_t mission;
     int mask;
-    char *name;
-    char *config_file;
-    char *extra_config_file;
-    char *executable;
+    const char *name;
+    const char *config_file;
+    const char *extra_config_file;
+    const char *executable;
 } mission_config_t;
 
 // Default mission to fall back on, if no IWADs are found at all:
@@ -106,7 +106,7 @@ static int screenblocks = 9;
 static int detailLevel = 0;
 static char *savedir = NULL;
 static char *executable = NULL;
-static char *game_title = "Doom";
+static const char *game_title = "Doom";
 static char *back_flat = "F_PAVE01";
 static int comport = 0;
 static char *nickname = NULL;
@@ -224,7 +224,7 @@ static void SetMission(mission_config_t *config)
     M_SetConfigFilenames(config->config_file, config->extra_config_file);
 }
 
-static mission_config_t *GetMissionForName(char *name)
+static mission_config_t *GetMissionForName(const char *name)
 {
     int i;
 
@@ -245,7 +245,7 @@ static mission_config_t *GetMissionForName(char *name)
 static boolean CheckExecutableName(GameSelectCallback callback)
 {
     mission_config_t *config;
-    char *exe_name;
+    const char *exe_name;
     int i;
 
     exe_name = M_GetExecutableName();
@@ -335,7 +335,7 @@ static void OpenGameSelectDialog(GameSelectCallback callback)
 void SetupMission(GameSelectCallback callback)
 {
     mission_config_t *config;
-    char *mission_name;
+    const char *mission_name;
     int p;
 
     //!
@@ -367,12 +367,12 @@ void SetupMission(GameSelectCallback callback)
     }
 }
 
-char *GetExecutableName(void)
+const char *GetExecutableName(void)
 {
     return executable;
 }
 
-char *GetGameTitle(void)
+const char *GetGameTitle(void)
 {
     return game_title;
 }

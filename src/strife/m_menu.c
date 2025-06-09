@@ -29,6 +29,8 @@
 #include "d_main.h"
 #include "deh_main.h"
 
+#include "i_input.h"
+#include "i_joystick.h"
 #include "i_swap.h"
 #include "i_system.h"
 #include "i_timer.h"
@@ -61,13 +63,8 @@
 #include "p_dialog.h"
 
 
-extern void M_QuitStrife(int);
+void M_QuitStrife(int);
 
-extern patch_t*         hu_font[HU_FONTSIZE];
-extern boolean          message_dontfuckwithme;
-
-extern boolean          chat_on;        // in heads-up code
-extern boolean          sendsave;       // [STRIFE]
 
 //
 // defaulted values
@@ -92,7 +89,7 @@ int			quickSaveSlot;
  // 1 = message to be printed
 int			messageToPrint;
 // ...and here is the message string!
-char*			messageString;
+const char		*messageString;
 
 // message x & y
 int			messx;
@@ -130,7 +127,6 @@ boolean                 menuindialog;   // haleyjd 09/04/10: ditto
 #define CURSORXOFF		-28
 #define LINEHEIGHT		19
 
-extern boolean		sendpause;
 char			savegamestrings[10][SAVESTRINGSIZE];
 
 char	endstring[160];
@@ -145,8 +141,8 @@ short		whichCursor;		// which skull to draw
 
 // graphic name of cursors
 // haleyjd 08/27/10: [STRIFE] M_SKULL* -> M_CURS*
-char    *cursorName[8] = {"M_CURS1", "M_CURS2", "M_CURS3", "M_CURS4", 
-                          "M_CURS5", "M_CURS6", "M_CURS7", "M_CURS8" };
+const char *cursorName[8] = {"M_CURS1", "M_CURS2", "M_CURS3", "M_CURS4",
+                             "M_CURS5", "M_CURS6", "M_CURS7", "M_CURS8" };
 
 // haleyjd 20110210 [STRIFE]: skill level for menus
 int menuskill;
@@ -205,9 +201,9 @@ void M_SetupNextMenu(menu_t *menudef);
 void M_DrawThermo(int x,int y,int thermWidth,int thermDot);
 void M_DrawEmptyCell(menu_t *menu,int item);
 void M_DrawSelCell(menu_t *menu,int item);
-int  M_StringWidth(char *string);
-int  M_StringHeight(char *string);
-void M_StartMessage(char *string,void *routine,boolean input);
+int  M_StringWidth(const char *string);
+int  M_StringHeight(const char *string);
+void M_StartMessage(const char *string,void *routine,boolean input);
 void M_StopMessage(void);
 
 
@@ -546,21 +542,22 @@ void M_ReadSaveStrings(void)
 
     for(i = 0; i < load_end; i++)
     {
+        int retval;
         if(fname)
             Z_Free(fname);
         fname = M_SafeFilePath(savegamedir, M_MakeStrifeSaveDir(i, "\\name"));
 
-        handle = fopen(fname, "rb");
+        handle = M_fopen(fname, "rb");
         if(handle == NULL)
         {
-            M_StringCopy(savegamestrings[i], EMPTYSTRING,
+            M_StringCopy(savegamestrings[i], DEH_String(EMPTYSTRING),
                          sizeof(savegamestrings[i]));
             LoadMenu[i].status = 0;
             continue;
         }
-        fread(savegamestrings[i], 1, SAVESTRINGSIZE, handle);
+        retval = fread(savegamestrings[i], 1, SAVESTRINGSIZE, handle);
         fclose(handle);
-        LoadMenu[i].status = 1;
+        LoadMenu[i].status = retval == SAVESTRINGSIZE;
     }
 
     if(fname)
@@ -752,15 +749,22 @@ void M_DoSave(int slot)
 //
 void M_SaveSelect(int choice)
 {
+    int x, y;
+
     // we are going to be intercepting all chars
     saveStringEnter = 1;
+
+    // We need to turn on text input:
+    x = LoadDef.x - 11;
+    y = LoadDef.y + choice * LINEHEIGHT - 4;
+    I_StartTextInput(x, y, x + 8 + 24 * 8 + 8, y + LINEHEIGHT - 2);
 
     // [STRIFE]
     quickSaveSlot = choice;
     //saveSlot = choice;
 
     M_StringCopy(saveOldString, savegamestrings[choice], sizeof(saveOldString));
-    if (!strcmp(savegamestrings[choice],EMPTYSTRING))
+    if (!strcmp(savegamestrings[choice], DEH_String(EMPTYSTRING)))
         savegamestrings[choice][0] = 0;
     saveCharIndex = strlen(savegamestrings[choice]);
 }
@@ -1265,7 +1269,6 @@ void M_FinishReadThis(int choice)
 */
 
 #if 0
-extern void F_StartCast(void);
 
 //
 // M_CheckStartCast
@@ -1453,7 +1456,7 @@ M_DrawSelCell
 
 void
 M_StartMessage
-( char*		string,
+( const char	*string,
   void*		routine,
   boolean	input )
 {
@@ -1479,7 +1482,7 @@ void M_StopMessage(void)
 //
 // Find string width from hu_font chars
 //
-int M_StringWidth(char* string)
+int M_StringWidth(const char *string)
 {
     size_t             i;
     int             w = 0;
@@ -1502,7 +1505,7 @@ int M_StringWidth(char* string)
 //
 //      Find string height from hu_font chars
 //
-int M_StringHeight(char* string)
+int M_StringHeight(const char *string)
 {
     size_t             i;
     int             h;
@@ -1695,6 +1698,7 @@ boolean M_Responder (event_t* ev)
     static  int     lasty = 0;
     static  int     mousex = 0;
     static  int     lastx = 0;
+    int dir;
 
     // In testcontrols mode, none of the function keys should do anything
     // - the only key is escape to quit.
@@ -1738,39 +1742,70 @@ boolean M_Responder (event_t* ev)
 
     if (ev->type == ev_joystick && joywait < I_GetTime())
     {
-        if (ev->data3 < 0)
+        if (JOY_GET_DPAD(ev->data6) != JOY_DIR_NONE)
+        {
+            dir = JOY_GET_DPAD(ev->data6);
+        }
+        else if (JOY_GET_LSTICK(ev->data6) != JOY_DIR_NONE)
+        {
+            dir = JOY_GET_LSTICK(ev->data6);
+        }
+        else
+        {
+            dir = JOY_GET_RSTICK(ev->data6);
+        }
+
+        if (dir & JOY_DIR_UP)
         {
             key = key_menu_up;
             joywait = I_GetTime() + 5;
         }
-        else if (ev->data3 > 0)
+        else if (dir & JOY_DIR_DOWN)
         {
             key = key_menu_down;
             joywait = I_GetTime() + 5;
         }
-
-        if (ev->data2 < 0)
+        if (dir & JOY_DIR_LEFT)
         {
             key = key_menu_left;
-            joywait = I_GetTime() + 2;
+            joywait = I_GetTime() + 5;
         }
-        else if (ev->data2 > 0)
+        else if (dir & JOY_DIR_RIGHT)
         {
             key = key_menu_right;
-            joywait = I_GetTime() + 2;
+            joywait = I_GetTime() + 5;
         }
 
-        if (ev->data1&1)
+#define JOY_BUTTON_MAPPED(x) ((x) >= 0)
+#define JOY_BUTTON_PRESSED(x) (JOY_BUTTON_MAPPED(x) && (ev->data1 & (1 << (x))) != 0)
+
+        if (JOY_BUTTON_PRESSED(joybfire))
         {
-            key = key_menu_forward;
+            // Simulate a 'Y' keypress when Doom show a Y/N dialog with Fire button.
+            if (messageToPrint && messageNeedsInput)
+            {
+                key = key_menu_confirm;
+            }
+            else
+            {
+                key = key_menu_forward;
+            }
             joywait = I_GetTime() + 5;
         }
-        if (ev->data1&2)
+        if (JOY_BUTTON_PRESSED(joybuse))
         {
-            key = key_menu_back;
+            // Simulate a 'N' keypress when Doom show a Y/N dialog with Use button.
+            if (messageToPrint && messageNeedsInput)
+            {
+                key = key_menu_abort;
+            }
+            else
+            {
+                key = key_menu_back;
+            }
             joywait = I_GetTime() + 5;
         }
-        if (joybmenu >= 0 && (ev->data1 & (1 << joybmenu)) != 0)
+        if (JOY_BUTTON_PRESSED(joybmenu))
         {
             key = key_menu_activate;
             joywait = I_GetTime() + 5;
@@ -1849,6 +1884,7 @@ boolean M_Responder (event_t* ev)
 
         case KEY_ESCAPE:
             saveStringEnter = 0;
+            I_StopTextInput();
             M_StringCopy(savegamestrings[quickSaveSlot], saveOldString,
                          sizeof(savegamestrings[quickSaveSlot]));
             break;
@@ -1856,6 +1892,7 @@ boolean M_Responder (event_t* ev)
         case KEY_ENTER:
             // [STRIFE]
             saveStringEnter = 0;
+            I_StopTextInput();
             if(gameversion == exe_strife_1_31 && !namingCharacter)
             {
                // In 1.31, we can be here as a result of normal saving again,
@@ -1869,16 +1906,26 @@ boolean M_Responder (event_t* ev)
             break;
 
         default:
-            // This is complicated.
+            // Savegame name entry. This is complicated.
             // Vanilla has a bug where the shift key is ignored when entering
             // a savegame name. If vanilla_keyboard_mapping is on, we want
-            // to emulate this bug by using 'data1'. But if it's turned off,
-            // it implies the user doesn't care about Vanilla emulation: just
-            // use the correct 'data2'.
+            // to emulate this bug by using ev->data1. But if it's turned off,
+            // it implies the user doesn't care about Vanilla emulation:
+            // instead, use ev->data3 which gives the fully-translated and
+            // modified key input.
+
+            if (ev->type != ev_keydown)
+            {
+                break;
+            }
 
             if (vanilla_keyboard_mapping)
             {
-                ch = key;
+                ch = ev->data1;
+            }
+            else
+            {
+                ch = ev->data3;
             }
 
             ch = toupper(ch);
@@ -2271,7 +2318,7 @@ void M_Drawer (void)
     unsigned int	i;
     unsigned int	max;
     char		string[80];
-    char               *name;
+    const char          *name;
     int			start;
 
     inhelpscreens = false;

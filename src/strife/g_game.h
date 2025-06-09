@@ -39,7 +39,7 @@ void G_InitNew (skill_t skill, int map);
 // [STRIFE] Removed episode parameter
 void G_DeferedInitNew (skill_t skill, int map);
 
-void G_DeferedPlayDemo (char* demo);
+void G_DeferedPlayDemo(const char *demo);
 
 // Can be called by the startup code or M_Responder,
 // calls P_SetupLevel or W_EnterWorld.
@@ -51,7 +51,7 @@ void G_DoLoadGame (boolean userload);
 void G_SaveGame (int slot, char* description);
 
 // Only called by startup code.
-void G_RecordDemo (char* name);
+void G_RecordDemo (const char* name);
 
 void G_BeginRecording (void);
 
