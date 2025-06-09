@@ -3,27 +3,6 @@ psdoom-ng
 
 psdoom-ng is a First Person Shooter operating system process killer based on psDooM and Chocolate Doom.
 
-
-Compile and usage
------------------
-
-Quick guide: 
-
- 1. Install all dependencies: gcc, make, libsdl, sdl_mixer, sdl_net, bash.
- 2. `cd trunk`
- 3. `./configure --help` #review your prefix, other paths, and extra options
- 4. `make`
- 5. `make install`
- 6. `man psdoom-ng` #read up on how to set it up the wrapper script psd
- 4. Get a copy of Doom, to copy the file Doom2.wad.
- 3. Action! `psd` or `psdoom-ng`
-
-Find more information in:
- * [man psdoom-ng](https://github.com/orsonteodoro/psdoom-ng/blob/master/extras/psdoom-ng.pdf)
- * [trunk/INSTALL](https://github.com/orsonteodoro/psdoom-ng/blob/1.6.0/trunk/INSTALL)
- * [trunk/CMDLINE](https://github.com/orsonteodoro/psdoom-ng/blob/1.6.0/trunk/CMDLINE)
- * [trunk/README.psdoom-ng](https://github.com/orsonteodoro/psdoom-ng/blob/master/trunk/README.psdoom-ng) 
-
 Requirements
 ------------
 
@@ -45,6 +24,26 @@ Linux requirements:
 | libsamplerate | >= 0.1.8  | Optional              | Runtime                | To play sound effects consistently on modern soundcards                                                                                              |
 | SDL_mixer     | >= 2.0.2  | Optional              | Runtime                | To play music and sound simultaneously                                                                                                               |
 | zenity        | >= 4      | Optional              | Runtime                | For config settings security review if using saved configs in `/home/${USER}/.psdoom-ng/psdoom-ng.conf` or `/etc/psdoom-ng.conf` and Wayland or X11  |
+
+Compile and usage
+-----------------
+
+Quick guide: 
+
+ 1. Install all dependencies: gcc, make, libsdl, sdl_mixer, sdl_net, bash.
+ 2. `cd trunk`
+ 3. `./configure --help` #review your prefix, other paths, and extra options
+ 4. `make`
+ 5. `make install`
+ 6. `man psdoom-ng` #read up on how to set it up the wrapper script psd
+ 4. Get a copy of Doom, to copy the file Doom2.wad.
+ 3. Action! `psd` or `psdoom-ng`
+
+Find more information in:
+ * [man psdoom-ng](https://github.com/orsonteodoro/psdoom-ng/blob/master/extras/psdoom-ng.pdf)
+ * [trunk/INSTALL](https://github.com/orsonteodoro/psdoom-ng/blob/1.6.0/trunk/INSTALL)
+ * [trunk/CMDLINE](https://github.com/orsonteodoro/psdoom-ng/blob/1.6.0/trunk/CMDLINE)
+ * [trunk/README.psdoom-ng](https://github.com/orsonteodoro/psdoom-ng/blob/master/trunk/README.psdoom-ng) 
 
 Gentoo Linux
 ------------
