@@ -27,6 +27,8 @@ execgames_PROGRAMS = psdoom-ng
 
 noinst_PROGRAMS = @PROGRAM_PREFIX@doom \
                   @PROGRAM_PREFIX@setup
+
+SETUP_BINARIES = @PROGRAM_PREFIX@psdoom-ng-setup$(EXEEXT)
 endif
 
 execgames_SCRIPTS = $(SETUP_BINARIES)
