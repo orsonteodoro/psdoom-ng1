@@ -30,14 +30,14 @@ Compile and usage
 
 Quick guide: 
 
- 1. Install all dependencies: gcc, make, libsdl, sdl_mixer, sdl_net, bash.
+ 1. Install all dependencies
  2. `cd trunk`
  3. `./configure --help` #review your prefix, other paths, and extra options
  4. `make`
  5. `make install`
  6. `man psdoom-ng` #read up on how to set it up the wrapper script psd
- 4. Get a copy of Doom, to copy the file Doom2.wad.
- 3. Action! `psd` or `psdoom-ng`
+ 7. Get a copy of Doom, to copy the file Doom2.wad.
+ 8. Action! Run with `psd` or `psdoom-ng`.  psd is preferred to auto load settings.
 
 Find more information in:
  * [man psdoom-ng](https://github.com/orsonteodoro/psdoom-ng/blob/master/extras/psdoom-ng.pdf)
