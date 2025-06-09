@@ -1,25 +1,33 @@
 #!/bin/bash
+
+# Checks required to prevent code execution / privilege escalation
+local run_script=0
+local settings_path=""
 if [[ -f "/home/${USER}/.psdoom-ng/psdoom-ng.conf" ]]; then
-	echo
-	echo "Contents of /home/${USER}/.psdoom-ng/psdoom-ng.conf:"
-	echo
-	cat "/home/${USER}/.psdoom-ng/psdoom-ng.conf"
-	echo
-	echo "psdoom-ng security check:  Run /home/${USER}/.psdoom-ng/psdoom-ng.conf? (y/N)"
-	read -r allow_run
-	if [[ "${allow_run}" =~ ("Y"|"y"|"1") ]] ; then
-		source "/home/${USER}/.psdoom-ng/psdoom-ng.conf"
-	fi
+	settings_path="/home/${USER}/.psdoom-ng/psdoom-ng.conf"
 elif [[ -f "/etc/psdoom-ng.conf" ]]; then
-	echo
-	echo "Contents of /etc/psdoom-ng.conf:"
-	echo
-	cat "/etc/psdoom-ng.conf"
-	echo
-	echo "psdoom-ng security check:  Run /etc/psdoom-ng.conf? (y/N)"
-	read -r allow_run
-	if [[ "${allow_run}" =~ ("Y"|"y"|"1") ]] ; then
-		source "/etc/psdoom-ng.conf"
+	settings_path="/etc/psdoom-ng.conf"
+fi
+
+if [[ -n "${settings_path}" ]]; then
+	if [[ -n "${DISPLAY}" ]] && which zenity ; then
+		zenity --question --title="psdoom-ng security settings check" --text=""$(cat "${settings_path}")"\n\nAre these settings safe?"
+		if (( ${?} == 0 )) ; then
+			source "${settings_path}"
+		fi
+	else
+		echo
+		echo "psdoom-ng security settings check"
+		echo
+		echo "Contents of ${settings_path}:"
+		echo
+		cat "${filepath}"
+		echo
+		echo "Are these settings safe? (y/N)"
+		read -r run_script
+		if [[ "${run_script}" =~ ("Y"|"y"|"1") ]] ; then
+			source "${settings_path}"
+		fi
 	fi
 fi
 
