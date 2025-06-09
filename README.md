@@ -24,6 +24,28 @@ Find more information in:
  * [trunk/CMDLINE](https://github.com/orsonteodoro/psdoom-ng/blob/1.6.0/trunk/CMDLINE)
  * [trunk/README.psdoom-ng](https://github.com/orsonteodoro/psdoom-ng/blob/master/trunk/README.psdoom-ng) 
 
+Requirements
+------------
+
+Linux requirements:
+
+| Package       | version   | Required or optional? | Build time or runtime? | Purpose                                                                                                                                              |
+| ----          | ----      | ----                  | ----                   | ----                                                                                                                                                 |
+| autotools     |           | Required              | Build time             | for build system (e.g. autoconf, make)                                                                                                               |
+| Python        | 3.x       | Required              | Build time             | for documentation generation                                                                                                                         |
+| Bash          |           | Required              | Build time and runtime | for the psd wrapper script                                                                                                                           |
+| GCC           |           | Required              | Build time             | for building the program                                                                                                                             |
+| Clang         |           | Optional              | Build time             | alternative to GCC                                                                                                                                   |
+| procps        |           | Required              | Runtime                | to list processes with ps                                                                                                                            |
+| SDL2          | >= 2.0.14 | Required              | Runtime                | to display on tty with kms, X11, or Wayland                                                                                                          |
+| util-linux    |           | Required              | Runtime                | to kill processes                                                                                                                                    |
+| FluidSynth    | >= 2.2.0  | Optional              | Runtime                | to play music based on MUS or MIDI format                                                                                                            |
+| FLAC          | >= 1.4.3  | Optional              | Runtime                | to play FLAC based music packs                                                                                                                       |
+| libpng        | >= 1.2.50 | Optional              | Runtime                | for taking screenshots                                                                                                                               |
+| libsamplerate | >= 0.1.8  | Optional              | Runtime                | to play sound effects consistently on modern soundcards                                                                                              |
+| SDL_mixer     | >= 2.0.2  | Optional              | Runtime                | to play music and sound simultaneously                                                                                                               |
+| zenity        | >= 4      | Optional              | Runtime                | for config settings security review if using saved configs in `/home/${USER}/.psdoom-ng/psdoom-ng.conf` or `/etc/psdoom-ng.conf` and Wayland or X11  |
+
 Gentoo Linux
 ------------
 You can find the ebuild at https://github.com/orsonteodoro/oiledmachine-overlay
