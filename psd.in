@@ -1,7 +1,6 @@
 #!/bin/bash
 
 # Checks required to prevent code execution / privilege escalation
-local run_script=0
 local settings_path=""
 if [[ -f "/home/${USER}/.psdoom-ng/psdoom-ng.conf" ]]; then
 	settings_path="/home/${USER}/.psdoom-ng/psdoom-ng.conf"
@@ -12,6 +11,11 @@ fi
 if [[ -n "${settings_path}" ]]; then
 	if [[ -n "${DISPLAY}" ]] && which zenity ; then
 		zenity --question --title="psdoom-ng security settings check" --text=""$(cat "${settings_path}")"\n\nAre these settings safe?"
+		if (( ${?} == 0 )) ; then
+			source "${settings_path}"
+		fi
+	elif [[ -n "${$WAYLAND_DISPLAY}" ]] ; then
+		GDK_BACKEND="wayland" zenity --question --title="psdoom-ng security settings check" --text=""$(cat "${settings_path}")"\n\nAre these settings safe?"
 		if (( ${?} == 0 )) ; then
 			source "${settings_path}"
 		fi
