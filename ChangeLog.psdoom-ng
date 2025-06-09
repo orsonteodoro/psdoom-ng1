@@ -1,5 +1,11 @@
 Changelog for psdoom-ng:
 
+Release 2025.06.08.3.1.0
+  -Update Chocolate Doom game engine based on master branch (0b3cb52, Apr 28, 2025 12:44 PDT)
+  -Renamed environment varables PSDOOM_NG_PS_CMD, PSDOOM_NG_RENICE_CMD, PSDOOM_NG_KILL_CMD to modernized names.
+  -Show the settings script before sourcing it to mitigate zero-click code execution or privilege escalation.
+  -Simplified versioning
+
 Release 2017.10.02.2.3.0.20170825 - Changes since 2016.01.16.2.2.1
   -Update the Chocolate Doom game engine based on master
    Aug 25, 2017 (83a71dd850fb02e571e2b5117f234395f8869a11)

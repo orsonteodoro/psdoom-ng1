@@ -1,4 +1,4 @@
-AC_INIT(psdoom-ng, 2017.10.02.3.1.0.20170825,
+AC_INIT(psdoom-ng, 2025.06.08.3.1.0,
         [mod: orsonteodoro@yahoo.com, engine: chocolate-doom-dev-list@chocolate-doom.org], psdoom-ng)
 
 #PACKAGE_SHORTNAME=${PACKAGE_NAME% Doom}
