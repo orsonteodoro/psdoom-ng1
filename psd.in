@@ -1,16 +1,50 @@
 #!/bin/bash
-if [[ -f /home/${USER}/.psdoom-ng/psdoom-ng.conf ]]; then
-	source /home/${USER}/.psdoom-ng/psdoom-ng.conf
-elif [[ -f /etc/psdoom-ng.conf ]]; then
-	source /etc/psdoom-ng.conf
+if [[ -f "/home/${USER}/.psdoom-ng/psdoom-ng.conf" ]]; then
+	echo
+	echo "Contents of /home/${USER}/.psdoom-ng/psdoom-ng.conf:"
+	echo
+	cat "/home/${USER}/.psdoom-ng/psdoom-ng.conf"
+	echo
+	echo "psdoom-ng security check:  Run /home/${USER}/.psdoom-ng/psdoom-ng.conf? (y/N)"
+	read -r allow_run
+	if [[ "${allow_run}" =~ ("Y"|"y"|"1") ]] ; then
+		source "/home/${USER}/.psdoom-ng/psdoom-ng.conf"
+	fi
+elif [[ -f "/etc/psdoom-ng.conf" ]]; then
+	echo
+	echo "Contents of /etc/psdoom-ng.conf:"
+	echo
+	cat "/etc/psdoom-ng.conf"
+	echo
+	echo "psdoom-ng security check:  Run /etc/psdoom-ng.conf? (y/N)"
+	read -r allow_run
+	if [[ "${allow_run}" =~ ("Y"|"y"|"1") ]] ; then
+		source "/etc/psdoom-ng.conf"
+	fi
 fi
 
-[[ ! -v PSDOOMPSCMD || -z $PSDOOMPSCMD  ]] && Z="$(unset PSDOOMPSCMD)" || export PSDOOMPSCMD="${PSDOOMPSCMD}"
-[[ ! -v PSDOOMRENICECMD || -z $PSDOOMRENICECMD ]] && Z="$(unset PSDOOMRENICECMD)" || export PSDOOMRENICECMD="${PSDOOMRENICECMD}"
-[[ ! -v PSDOOMKILLCMD || -z $PSDOOMKILLCMD ]] && Z="$(unset PSDOOMKILLCMD)" || export PSDOOMKILLCMD="${PSDOOMKILLCMD}"
-[[ ! -v DOOMWADPATH || -z $DOOMWADPATH ]] && Z="$(unset DOOMWADPATH)" || export DOOMWADPATH="${DOOMWADPATH}"
+if [[ ! -v PSDOOMPSCMD || -z "${PSDOOMPSCMD}"  ]] ; then
+	unset PSDOOMPSCMD
+else
+	export PSDOOMPSCMD="${PSDOOMPSCMD}"
+fi
+if [[ ! -v PSDOOMRENICECMD || -z "${PSDOOMRENICECMD}" ]] ; then
+	unset PSDOOMRENICECMD
+else
+	export PSDOOMRENICECMD="${PSDOOMRENICECMD}"
+fi
+if [[ ! -v PSDOOMKILLCMD || -z "${PSDOOMKILLCMD}" ]] ; then
+	unset PSDOOMKILLCMD
+else
+	export PSDOOMKILLCMD="${PSDOOMKILLCMD}"
+fi
+if [[ ! -v DOOMWADPATH || -z "${DOOMWADPATH}" ]] ; then
+	unset DOOMWADPATH
+else
+	export DOOMWADPATH="${DOOMWADPATH}"
+fi
 echo "PSDOOMPSCMD=${PSDOOMPSCMD}"
 echo "PSDOOMRENICECMD=${PSDOOMRENICECMD}"
 echo "PSDOOMKILLCMD=${PSDOOMKILLCMD}"
 echo "DOOMWADPATH=${DOOMWADPATH}"
-/usr/bin/psdoom-ng ${DEFAULT_ARGS} $@
+/usr/bin/psdoom-ng ${DEFAULT_ARGS} "$@"
