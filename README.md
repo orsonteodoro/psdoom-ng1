@@ -101,7 +101,7 @@ The example script can be installed by adding --enable-cloudfoundry on configure
 
 Custom map
 ----------
-The custom wads referred in psDooM readme can be found at contrib/psdoom-2000.05.03-data.tar.gz
+The custom wads referred in psDooM readme can be found at [contrib/psdoom-2000.05.03-data.tar.gz](https://github.com/orsonteodoro/psdoom-ng1/raw/refs/heads/psdoom-ng/contrib/psdoom-2000.05.03-data.tar.gz)
 
 Contributors
 ------------
