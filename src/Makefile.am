@@ -281,7 +281,7 @@ endif
 @PACKAGE_RDNS@.Strife.metainfo.xml : Strife.metainfo.xml
 	cp Strife.metainfo.xml $@
 
-psdoom-ng.metainfo.xml : psdoom-ng.metainfo.xml
+psdoom-ng.metainfo.xml : psdoom-ng.metainfo.xml.in
 	cp psdoom-ng.metainfo.xml $@
 
 appdir = $(prefix)/share/applications
@@ -314,7 +314,7 @@ endif
 @PACKAGE_RDNS@.Strife.desktop : Strife.desktop
 	cp Strife.desktop $@
 
-psdoom-ng.desktop : psdoom-ng.desktop
+psdoom-ng.desktop : psdoom-ng.desktop.in
 	cp psdoom-ng.desktop $@
 
 if ENABLE_ALL_GAMES
