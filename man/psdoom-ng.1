@@ -31,20 +31,27 @@ psdoom-ng spawns you in a room with equiptment and weapons.  The switch ahead of
 .SH TELEPORT COORDINATES
 .PP
 Here is the specific locations to accelerate finding monsters for use for -telestartf or -telestarti
-.PP
-psDooM doom custom map (door to pid monster pit): x_fp=167993976 y_fp=-9414819
-.PP
-psDooM doom custom map (window to pid monster pit): x_fp=136145346 y_fp=-1573872
-.PP
-psDooM doom2 custom map (door to pid monster pit): x_fp=167633441 y_fp=-14137105
-.PP
-psDoom doom2 custom map (window to pid monster pit): x_fp=132356086 y_fp=-5202436
+
 .PP
 doom e1m1 (door to pid monster pit): x_fp=136310834 y_fp=-257677815
+
 .PP
 doom2 map01 (edge of pid monster pit): x_fp=62008780 y_fp=28333935
+
 .PP
 doom2 map01 (window to pid monster pit) x_fp=51671154 y_fp=35243725
+
+.PP
+psDooM doom custom map (door to pid monster pit): x_fp=167993976 y_fp=-9414819
+
+.PP
+psDooM doom custom map (window to pid monster pit): x_fp=136145346 y_fp=-1573872
+
+.PP
+psDooM doom2 custom map (door to pid monster pit): x_fp=167633441 y_fp=-14137105
+
+.PP
+psDoom doom2 custom map (window to pid monster pit): x_fp=132356086 y_fp=-5202436
 
 .SH NOTES
 .PP
@@ -53,133 +60,156 @@ Using killing processes in DWM or any other tiling manager may screw up the game
 The custom maps may not spawn the pid monsters in a reachable place.  You will need to edit the source code.
 
 .SH OPTIONS
-.PP
--nopssafety
-.RS
-Causes the 'pid monsters' to not be protected against damage from each other, normal Doom monsters, and the environment.  Normally, only the player may inflict damage on 'pid monsters'.
-.RE
-.PP
--psallusers
-.RS
-Effectively adds every username to the list of users whose processes to show.
-.RE
-.PP
--psuser [username [username]...]
-.RS
-Adds username(s) to the list of users whose processes to show.  If no username is specified, the current username (as determined by the environment variables listed above) is added to this list.
-.RE
-.PP
--psnotuser [username [username]...]
-.RS
-Adds username(s) to the list of users whose processes NOT to show.  If no username is specified, the current username (as determined by the environment variables listed above) is added to this list.
-.RE
-.PP
--nopslev
-.RS
-Suppresses the automatic loading of the custom level psdoom*.wad and makes psDooM assume pid monster coordinates for the stock E1M1 or MAP01.  It has no effect if you don't have the custom level or if you're using shareware Doom 1.
-.RE
-.PP
--nopsmon
-.RS
-Disables process monitoring entirely.  Nice if you want to play an E1M1 or MAP01 level that isn't set up for process monitoring.
-.RE
-.PP
--nopsact
-.RS
-Disables the system calls to 'renice' and 'kill' when 'pid monsters' are wounded and killed.  This is good if you only want to monitor processes, not manage them.
-.RE
-.PP
--nomonsters.
-.RS
-Yes, there is a period at the end of this command.  It does the same thing as the '-nomonsters' flag, but is persistant across new games and level warps. NOTE: 'pid monsters' are NOT affected by the '-nomonsters' and '-nomonsters.' flags; use -nopsmon to turn them off instead.
-.RE
-.PP
--respawnitems
-.RS
-Like you think it may work, this flag causes items to respawn as they do in '-altdeath' games (Invun, Invis, and dropped items don't respawn; everything else does).  This flag has no effect when recording or playing a demo because it messes up timing.
-.RE
-.PP
--fullscreen
-.RS
-Runs psdoom-ng into full screen mode.
-.RE
-.PP
--window
-.RS
-Runs psdoom-ng into windowed screen mode.
-.RE
-.PP
--iwad
-.RS
-Loads the main wad file.  You need to specify one if you do not specify the DOOMWADPATH environmental variable.  The game engine will automatically load an official wad.
-.RE
-.PP
--merge
-.RS
-Appends total conversion wad file.  You can specify more than one file.
-.RE
-.PP
--nosound
-.RS
-Disables all sound.
-.RE
-.PP
--nosfx
-.RS
-Disables sound effects.
-.RE
-.PP
--nomusic
-.RS
-Disables music
-.RE
-.PP
--warp [ x y | xy ]
-.RS
-Start immediately in ExMy or MAPxy
-.RE
-.PP
--grabmouse
-.RS
-Grab mouse in windowed mode.
-.RE
-.PP
--nograbmouse
-.RS
-Disables mouse grab in window mode.
-.RE
-.PP
--geometry WxH[wf]
-.RS
-Sets the size of the window's width (W) and height (H).  Optional w appended runs in window mode and f means fullscreen mode.
-.RE
+
 .PP
 -devparm
 .RS
 Developer mode.  F1 saves a screenshot in the current directory.  It also prints out the location of the player on the map in the console for use for -telestarf or -telestarti.
 .RE
+
+.PP
+-fullscreen
+.RS
+Runs psdoom-ng into full screen mode.
+.RE
+
+.PP
+-geometry WxH[wf]
+.RS
+Sets the size of the window's width (W) and height (H).  Optional w appended runs in window mode and f means fullscreen mode.
+.RE
+
 .PP
 -godstart
 .RS
 Start psdoom-ng with god mode.  The option depends on -episode or -warp.
 .RE
+
+.PP
+-grabmouse
+.RS
+Grab mouse in windowed mode.
+.RE
+
+.PP
+-iwad
+.RS
+Loads the main wad file.  You need to specify one if you do not specify the PSDOOM_NG_WAD_PATHS environmental variable.  The game engine will automatically load an official wad.
+.RE
+
+.PP
+-merge
+.RS
+Appends total conversion wad file.  You can specify more than one file.
+.RE
+
+.PP
+-nograbmouse
+.RS
+Disables mouse grab in window mode.
+.RE
+
+.PP
+-nomonsters
+.RS
+Yes, there is a period at the end of this command.  It does the same thing as the '-nomonsters' flag, but is persistant across new games and level warps. NOTE: 'pid monsters' are NOT affected by the '-nomonsters' and '-nomonsters.' flags; use -nopsmon to turn them off instead.
+.RE
+
+.PP
+-nomusic
+.RS
+Disables music
+.RE
+
+.PP
+-nopsact
+.RS
+Disables the system calls to 'renice' and 'kill' when 'pid monsters' are wounded and killed.  This is good if you only want to monitor processes, not manage them.
+.RE
+
+.PP
+-nopslev
+.RS
+Suppresses the automatic loading of the custom level psdoom*.wad and makes psDooM assume pid monster coordinates for the stock E1M1 or MAP01.  It has no effect if you don't have the custom level or if you're using shareware Doom 1.
+.RE
+
+.PP
+-nopsmon
+.RS
+Disables process monitoring entirely.  Nice if you want to play an E1M1 or MAP01 level that isn't set up for process monitoring.
+.RE
+
+.PP
+-nopssafety
+.RS
+Causes the 'pid monsters' to not be protected against damage from each other, normal Doom monsters, and the environment.  Normally, only the player may inflict damage on 'pid monsters'.
+.RE
+
+.PP
+-nosfx
+.RS
+Disables sound effects.
+.RE
+
+.PP
+-nosound
+.RS
+Disables all sound.
+.RE
+
+.PP
+-psallusers
+.RS
+Effectively adds every username to the list of users whose processes to show.
+.RE
+
+.PP
+-psnotuser [username [username]...]
+.RS
+Adds username(s) to the list of users whose processes NOT to show.  If no username is specified, the current username (as determined by the environment variables listed above) is added to this list.
+.RE
+
+.PP
+-psuser [username [username]...]
+.RS
+Adds username(s) to the list of users whose processes to show.  If no username is specified, the current username (as determined by the environment variables listed above) is added to this list.
+.RE
+
+.PP
+-respawnitems
+.RS
+Like you think it may work, this flag causes items to respawn as they do in '-altdeath' games (Invun, Invis, and dropped items don't respawn; everything else does).  This flag has no effect when recording or playing a demo because it messes up timing.
+.RE
+
 .PP
 -telestartf x y
 .RS
 Teleports the player to a specific location on the start of the load of the map as a fixed float at location x and y.  The option depends on -episode or -warp.
 .RE
+
 .PP
 -telestarti x y
 .RS
 Teleports the player to a close to specific loation on the start of the load of the map as a integer at location x and y.  The option depends on -episode or -warp.
 .RE
 
+.PP
+-warp [ x y | xy ]
+.RS
+Start immediately in ExMy or MAPxy
+.RE
+
+.PP
+-window
+.RS
+Runs psdoom-ng into windowed screen mode.
+.RE
 
 .SH ENVIRONMENTAL VARIABLES
 .PP
-DOOMWADPATH
+PSDOOM_NG_KILL_CMD
 .RS
-A list of paths to search for wads seperated by a colon.
+Replaces the default if not defined 'kill -9' with the command assigned to it.  The argument is a pid and will be appended to the end of the command with a space.
 .RE
 .PP
 PSDOOM_NG_PS_CMD
@@ -204,48 +234,87 @@ PSDOOM_NG_RENICE_CMD
 Replaces the default if not defined 'nice +5' with a command to renice a pid.  You could for example renice by 1 or -1 instead.  The argument is pid and will be appended to the end of the command with a space.
 .RE
 .PP
-PSDOOM_NG_KILL_CMD
+PSDOOM_NG_WAD_PATHS
 .RS
-Replaces the default if not defined 'kill -9' with the command assigned to it.  The argument is a pid and will be appended to the end of the command with a space.
+A list of paths to search for wads seperated by a colon.
 .RE
 
 .SH EXAMPLES
 .PP
 It is tedious to repeatively type out all of this long hand.  This is why the wrapper script 'psd' is provided.
+
 .PP
-DOOMWADPATH="/usr/share/games/doom-data:/usr/share/psdoom-ng" psdoom-ng -psallusers
+To show every user's processes:
+.PP
 .RS
-This command will show every user's processes.
+PSDOOM_NG_WAD_PATHS="/usr/share/games/doom-data:/usr/share/psdoom-ng" \\
+.br
+psdoom-ng -psallusers
+.RE
+
+.PP
+To show jschmoe and jdoe processes:
+.PP
+.RS
+PSDOOM_NG_WAD_PATHS="/usr/share/games/doom-data:/usr/share/psdoom-ng" \\
+.br
+psdoom-ng -psuser jschmoe jdoe
+.RE
+
+.PP
+Your username is determined automatically by psdoom-ng according to what PSDOOMUSER, LOGNAME, USER, or USERNAME is set to in the environment.
+To show everybody's processes except your own:
+.PP
+.RS
+PSDOOM_NG_WAD_PATHS="/usr/share/games/doom-data:/usr/share/psdoom-ng" \\
+.br
+psdoom-ng -psallusers -psnotuser
+.RE
+
+.PP
+This will show no processes, even if you're running psDooM as root.  Remember, specifying any 'userlist' command line option causes the defaults to not be us.  An example of what not to do:
+.PP
+.RS
+PSDOOM_NG_WAD_PATHS="/usr/share/games/doom-data:/usr/share/psdoom-ng" \\
+.br
+psdoom-ng -psnotuser jdoe
+.RE
+
+.PP
+To show process belonging to orson and the psDooM custom level for Doom 1 or Ultimate Doom:
+.PP
+.RS
+PSDOOM_NG_WAD_PATHS="/usr/share/games/doom-data:/usr/share/psdoom-ng" \\
+.br
+psdoom-ng -psuser orson -iwad doom.wad
 .RE
 .PP
-DOOMWADPATH="/usr/share/games/doom-data:/usr/share/psdoom-ng" psdoom-ng -psallusers -psuser jschmoe jdoe
-.RS
-The '-psuser jschmoe jdoe' is extraneous here; users jschmoe and jdoe are included in '-psallusers'.
-.RE
+
 .PP
-DOOMWADPATH="/usr/share/games/doom-data:/usr/share/psdoom-ng" psdoom-ng -psallusers -psnotuser
-.RS
-This will show everybody's processes except your own.  Remember, your username is determined automatically by psdoom-ng according to what PSDOOMUSER, LOGNAME, USER, or USERNAME is set to in the environment.
-.RE
+To show process belonging to orson and the psDooM custom level for Doom 2:
 .PP
-DOOMWADPATH="/usr/share/games/doom-data:/usr/share/psdoom-ng" psdoom-ng -psnotuser jdoe
 .RS
-This will show no processes, even if you're running psDooM as root. Remember, specifying any 'userlist' command line option causes the defaults to not be us
+PSDOOM_NG_WAD_PATHS="/usr/share/games/doom-data:/usr/share/psdoom-ng" \\
+.br
+psdoom-ng -psuser orson -iwad doom2.wad
 .RE
+
 .PP
-DOOMWADPATH="/usr/share/games/doom-data:/usr/share/psdoom-ng" psdoom-ng -psuser orson -iwad doom.wad
-.RS
-This will show process belonging to orson and the psDooM custom level for Doom 1 or Ultimate Doom.
-.RE
+In this use case, it will show specific instances of that application on that machine.
+The nice command will be ignored in this case.
+The kill command deletes the application on that remote machine.
+To delete an app in a remote cloud service with a user provided script psdoom-ng-cf-ctl:
 .PP
-DOOMWADPATH="/usr/share/games/doom-data:/usr/share/psdoom-ng" psdoom-ng -psuser orson -iwad doom2.wad
 .RS
-This will show process belonging to orson and the psDooM custom level for Doom 2.
-.RE
-.PP
-PSDOOM_NG_PS_CMD="/usr/share/local/bin/psdoom-ng-cf-ctl ps" PSDOOM_NG_RENICE_CMD="true" PSDOOM_NG_KILL_CMD="/usr/share/local/bin/psdoom-ng-cf-ctl kill" DOOMWADPATH="/usr/share/games/doom-data:/usr/share/psdoom-ng" psdoom-ng
-.RS
-For this use case, psdoom-ng will delete an app in a remote cloud service with a user provided script psdoom-ng-cf-ctl.  This will show specific instances of that application on that machine.  The nice command will be ignored in this case.  The kill command deletes the application on that remote machine.
+PSDOOM_NG_PS_CMD="/usr/share/local/bin/psdoom-ng-cf-ctl ps" \\
+.br
+PSDOOM_NG_RENICE_CMD="true" \\
+.br
+PSDOOM_NG_KILL_CMD="/usr/share/local/bin/psdoom-ng-cf-ctl kill" \\
+.br
+PSDOOM_NG_WAD_PATHS="/usr/share/games/doom-data:/usr/share/psdoom-ng" \\
+.br
+psdoom-ng
 .RE
 
 
@@ -253,7 +322,7 @@ For this use case, psdoom-ng will delete an app in a remote cloud service with a
 .PP
 /etc/psdoom-ng.conf, /home/${USER}/.psdoom-ng/psdoom-ng.conf
 .RS
-Both files contains the default arguments and environmental variables used for the wrapper script.  The first file contains the system-wide default.  The second file is the user defaults.  The user options override the system options.  Define DEFAULT_ARGS="" for the default options.  Define DOOMWADPATH="" which provides the wad search paths seperated by colons.  See the envirionmental variables for more details.  All environmental variables mentioned are supported.
+Both files contains the default arguments and environmental variables used for the wrapper script.  The first file contains the system-wide default.  The second file is the user defaults.  The user options override the system options.  Define DEFAULT_ARGS="" for the default options.  Define PSDOOM_NG_WAD_PATHS="" which provides the wad search paths seperated by colons.  See the envirionmental variables for more details.  All environmental variables mentioned are supported.
 .RE
 
 .br

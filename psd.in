@@ -38,22 +38,31 @@ fi
 if [[ ! -v PSDOOM_NG_PS_CMD || -z "${PSDOOM_NG_PS_CMD}"  ]] ; then
 	unset PSDOOM_NG_PS_CMD
 else
-	export PSDOOM_NG_PS_CMD="${PSDOOM_NG_PS_CMD}"
+	export PSDOOM_NG_PS_CMD
 fi
 if [[ ! -v PSDOOM_NG_RENICE_CMD || -z "${PSDOOM_NG_RENICE_CMD}" ]] ; then
 	unset PSDOOM_NG_RENICE_CMD
 else
-	export PSDOOM_NG_RENICE_CMD="${PSDOOM_NG_RENICE_CMD}"
+	export PSDOOM_NG_RENICE_CMD
 fi
 if [[ ! -v PSDOOM_NG_KILL_CMD || -z "${PSDOOM_NG_KILL_CMD}" ]] ; then
 	unset PSDOOM_NG_KILL_CMD
 else
-	export PSDOOM_NG_KILL_CMD="${PSDOOM_NG_KILL_CMD}"
+	export PSDOOM_NG_KILL_CMD
+fi
+if [[ ! -v PSDOOM_NG_WAD_PATH || -z "${PSDOOM_NG_WAD_PATH}" ]] ; then
+	unset PS_DOOM_NG_WAD_PATH
+else
+	export PS_DOOM_NG_WAD_PATH
 fi
 if [[ ! -v DOOMWADPATH || -z "${DOOMWADPATH}" ]] ; then
 	unset DOOMWADPATH
 else
-	export DOOMWADPATH="${DOOMWADPATH}"
+	export DOOMWADPATH
+fi
+
+if [[ -n "${PSDOOMKILLCMD}" ]] ; then
+	echo "WARN:  The PSDOOMKILLCMD has been renamed to PSDOOM_NG_KILL_CMD"
 fi
 
 if [[ -n "${PSDOOMPSCMD}" ]] ; then
@@ -64,12 +73,16 @@ if [[ -n "${PSDOOMRENICECMD}" ]] ; then
 	echo "WARN:  The PSDOOMPSCMD has been renamed to PSDOOM_NG_RENICE_CMD"
 fi
 
-if [[ -n "${PSDOOMKILLCMD}" ]] ; then
-	echo "WARN:  The PSDOOMKILLCMD has been renamed to PSDOOM_NG_KILL_CMD"
+if [[ -n "${DOOMWADDIR}" ]] ; then
+	echo "WARN:  The DOOMWADDIR has been renamed to PSDOOM_NG_WAD_DIR"
 fi
 
+if [[ -n "${DOOMWADPATH}" ]] ; then
+	echo "WARN:  The DOOMWADPATH has been renamed to PSDOOM_NG_WAD_PATHS"
+fi
+
+echo "PSDOOM_NG_KILL_CMD=${PSDOOM_NG_KILL_CMD}"
 echo "PSDOOM_NG_PS_CMD=${PSDOOM_NG_PS_CMD}"
 echo "PSDOOM_NG_RENICE_CMD=${PSDOOM_NG_RENICE_CMD}"
-echo "PSDOOM_NG_KILL_CMD=${PSDOOM_NG_KILL_CMD}"
-echo "DOOMWADPATH=${DOOMWADPATH}"
+echo "PSDOOM_NG_WAD_PATHS=${PSDOOM_NG_WAD_PATHS}"
 /usr/bin/psdoom-ng ${DEFAULT_ARGS} "$@"
