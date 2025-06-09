@@ -53,6 +53,7 @@ Find more information in:
 
 Gentoo Linux
 ------------
+
 You can find the ebuild at https://github.com/orsonteodoro/oiledmachine-overlay
 
 Mac OS X
@@ -61,7 +62,6 @@ Mac OS X
 Now with support for Mac OS X!
 
 It is recommended use brew to install the depenedencies.
-
 
 Support for external process source
 -----------------------------------
@@ -87,7 +87,6 @@ For that, you only need to override these environment variables:
 
  * PSDOOM_NG_KILL_CMD Command to kill the process. Will get the pid as argument
 
-
 For example, in contrib you can find a script that interacts with cloudfoundry:
 
 ```bash
@@ -98,7 +97,6 @@ For example, in contrib you can find a script that interacts with cloudfoundry:
     ./src/psdoom
 ```
 
-
 NOTE: psdoom does a synchronous call to the external commands (mono-thread). If your
 command takes too long, you will feel hipcuts in the game. Try to make your commands
 respond really fast! 
@@ -107,10 +105,12 @@ The example script can be installed by adding --enable-cloudfoundry on configure
 
 Custom map
 ----------
+
 The custom wads referred in psDooM readme can be found at [contrib/psdoom-2000.05.03-data.tar.gz](https://github.com/orsonteodoro/psdoom-ng1/raw/refs/heads/psdoom-ng/contrib/psdoom-2000.05.03-data.tar.gz)
 
 Contributors
 ------------
+
  Dennis Chao came up with the original idea and wrote much of the mod.
 
  David Koppenhofer was the previous maintainer of the mod psDooM.
@@ -134,6 +134,7 @@ Contributing
 
 License
 -------
+
  psDooM was based on GNU General Public License 2.0.
 
  Chocolate Doom was based on GNU General Public License 2.0.
