@@ -282,7 +282,7 @@ endif
 	cp Strife.metainfo.xml $@
 
 psdoom-ng.metainfo.xml : psdoom-ng.metainfo.xml.in
-	cp psdoom-ng.metainfo.xml $@
+	cp psdoom-ng.metainfo.xml.in $@
 
 appdir = $(prefix)/share/applications
 if ENABLE_ALL_GAMES
@@ -315,7 +315,7 @@ endif
 	cp Strife.desktop $@
 
 psdoom-ng.desktop : psdoom-ng.desktop.in
-	cp psdoom-ng.desktop $@
+	cp psdoom-ng.desktop.in $@
 
 if ENABLE_ALL_GAMES
 screensaverdir = $(prefix)/share/applications/screensavers
