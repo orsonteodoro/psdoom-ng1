@@ -21,7 +21,7 @@ Linux requirements:
 | procps        |           | Required              | Runtime                | To list processes with ps                                                                                                                            |
 | Python        | 3.x       | Required              | Build time             | For documentation generation                                                                                                                         |
 | SDL 2         | >= 2.0.14 | Required              | Runtime                | To display on KMS on TTY, X11, or Wayland                                                                                                            |
-| SDL_mixer     | >= 2.0.2  | Optional              | Runtime                | To play music and sound simultaneously                                                                                                               |
+| SDL_mixer     | >= 2.0.2  | Optional              | Runtime                | To play background music and sound effects simultaneously                                                                                            |
 | util-linux    |           | Required              | Runtime                | To kill processes                                                                                                                                    |
 | zenity        | >= 4      | Optional              | Runtime                | For config settings security review if using saved configs in `/home/${USER}/.psdoom-ng/psdoom-ng.conf` or `/etc/psdoom-ng.conf` and Wayland or X11  |
 
