@@ -10,10 +10,10 @@ Linux requirements:
 
 | Package       | version   | Required or optional? | Build time or run time? | Purpose                                                                                                                                              |
 | ----          | ----      | ----                  | ----                    | ----                                                                                                                                                 |
-| autoconf      |           | Required              | Build time              | For autotools build system                                                                                                                           |
-| automake      | >= 1.8.0  | Required              | Build time              | For autotools build system                                                                                                                           |
+| autoconf      |           | Required              | Build time              | For Autotools build system                                                                                                                           |
+| automake      | >= 1.8.0  | Required              | Build time              | For Autotools build system                                                                                                                           |
 | coreutils     |           | Required              | Build time              | For setting file permissions                                                                                                                         |
-| CMake         |           | Optional              | Build time              | An alternative to autotools build system                                                                                                             |
+| CMake         |           | Optional              | Build time              | An alternative to Autotools build system                                                                                                             |
 | grep          |           | Required              | Build time              | For build scripts                                                                                                                                    |
 | Bash          |           | Required              | Build time and run time | For the psd wrapper script                                                                                                                           |
 | binutils      |           | Required              | Build time              | For linking programs                                                                                                                                 |
@@ -21,7 +21,7 @@ Linux requirements:
 | GCC           |           | Required              | Build time              | For building the program                                                                                                                             |
 | FLAC          | >= 1.4.3  | Optional              | Run time                | To play FLAC based music packs                                                                                                                       |
 | FluidSynth    | >= 2.2.0  | Optional              | Run time                | To play music based on MUS or MIDI format                                                                                                            |
-| make          |           | Required              | Build time              | For autotools build system                                                                                                                           |
+| make          |           | Required              | Build time              | For Autotools build system                                                                                                                           |
 | man-db        |           | Optional              | Run time                | To view documentation with `man psdoom-ng`                                                                                                           |
 | libpng        | >= 1.2.50 | Optional              | Run time                | To save screenshots in PNG format                                                                                                                    |
 | libsamplerate | >= 0.1.8  | Optional              | Run time                | To play sound effects consistently on modern soundcards                                                                                              |
@@ -37,7 +37,7 @@ Linux requirements:
 Compile and usage
 -----------------
 
-Quick guide with autotools:
+Quick guide with Autotools:
 
  1. Install all dependencies
  2. `cd trunk`
@@ -48,7 +48,7 @@ Quick guide with autotools:
  7. Get a copy of Doom, to copy the file Doom2.wad.
  8. Action! Run with `psd` or `psdoom-ng`.  psd is preferred to auto load settings.
 
-Quick guide with cmake:
+Quick guide with CMake:
 
  1. Install all dependencies
  2. `cd trunk`
