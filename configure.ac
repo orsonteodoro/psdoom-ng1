@@ -329,7 +329,7 @@ pkg/osx/Info.plist
 rpm.spec
 data/Makefile
 src/Makefile
-src/psdoom-ng.appdata.xml
+src/psdoom-ng.metainfo.xml
 src/doom-res.rc
 src/Doom.metainfo.xml
 src/Doom.desktop

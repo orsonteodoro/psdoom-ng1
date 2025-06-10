@@ -259,11 +259,11 @@ metainfo_DATA =                             \
         @PACKAGE_RDNS@.Heretic.metainfo.xml \
         @PACKAGE_RDNS@.Hexen.metainfo.xml   \
         @PACKAGE_RDNS@.Strife.metainfo.xml  \
-        psdoom-ng.appdata.xml
+        psdoom-ng.metainfo.xml
 else
 metainfodir = $(prefix)/share/metainfo
 metainfo_DATA =                             \
-        psdoom-ng.appdata.xml
+        psdoom-ng.metainfo.xml
 noinst_DATA =                             \
         @PACKAGE_RDNS@.Doom.metainfo.xml    \
         @PACKAGE_RDNS@.Heretic.metainfo.xml \
