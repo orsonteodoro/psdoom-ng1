@@ -13,6 +13,7 @@ Linux requirements:
 | autoconf      |           | Required              | Build time              | For autotools build system                                                                                                                           |
 | automake      | >= 1.8.0  | Required              | Build time              | For autotools build system                                                                                                                           |
 | coreutils     |           | Required              | Build time              | For setting file permissions                                                                                                                         |
+| CMake         |           | Optional              | Build time              | An alternative to autotools build system                                                                                                             |
 | grep          |           | Required              | Build time              | For build scripts                                                                                                                                    |
 | Bash          |           | Required              | Build time and run time | For the psd wrapper script                                                                                                                           |
 | binutils      |           | Required              | Build time              | For linking programs                                                                                                                                 |
@@ -36,13 +37,25 @@ Linux requirements:
 Compile and usage
 -----------------
 
-Quick guide: 
+Quick guide with autotools:
 
  1. Install all dependencies
  2. `cd trunk`
  3. `./configure --help` #review your prefix, other paths, and extra options
  4. `make`
  5. `make install`
+ 6. `man psdoom-ng` #read up on how to set it up the wrapper script psd
+ 7. Get a copy of Doom, to copy the file Doom2.wad.
+ 8. Action! Run with `psd` or `psdoom-ng`.  psd is preferred to auto load settings.
+
+Quick guide with cmake:
+
+ 1. Install all dependencies
+ 2. `cd trunk`
+ 3. `cmake -B build -S . -DCMAKE_INSTALL_PREFIX=/usr -DENABLE_SDL2_MIXER=ON <source-dir>` # For features, see option() in CMakeLists.txt
+ 4. `cd build`
+ 4. `ninja -v`
+ 5. `ninja -v install`
  6. `man psdoom-ng` #read up on how to set it up the wrapper script psd
  7. Get a copy of Doom, to copy the file Doom2.wad.
  8. Action! Run with `psd` or `psdoom-ng`.  psd is preferred to auto load settings.
