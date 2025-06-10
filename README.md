@@ -52,7 +52,7 @@ Quick guide with cmake:
 
  1. Install all dependencies
  2. `cd trunk`
- 3. `cmake -B build -S . -DCMAKE_INSTALL_PREFIX=/usr -DENABLE_SDL2_MIXER=ON <source-dir>` # For features, see option() in CMakeLists.txt
+ 3. `cmake -B build -S . -DCMAKE_INSTALL_PREFIX=/usr -DENABLE_SDL2_MIXER=ON` # For features, see option() in CMakeLists.txt
  4. `cd build`
  4. `ninja -v`
  5. `ninja -v install`
