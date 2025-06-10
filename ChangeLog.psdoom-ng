@@ -1,5 +1,13 @@
 Changelog for psdoom-ng:
 
+Release 2025.06.09.3.1.0
+  -Update cmake support for psdoom-ng
+  -Restyle man page and pdf documentation
+  -Update quick start guide
+  -Rename to PSDOOM_NG_WAD_PATHS
+  -Update metainfo for psdoom-ng
+  -Fix build for Setup utility with Automake build scripts
+
 Release 2025.06.08.3.1.0
   -Update Chocolate Doom game engine based on master branch (0b3cb52, Apr 28, 2025 12:44 PDT)
   -Renamed environment varables PSDOOM_NG_PS_CMD, PSDOOM_NG_RENICE_CMD, PSDOOM_NG_KILL_CMD to modernized names.
