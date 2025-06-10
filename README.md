@@ -61,10 +61,10 @@ Quick guide with cmake:
  8. Action! Run with `psd` or `psdoom-ng`.  psd is preferred to auto load settings.
 
 Find more information in:
- * [man psdoom-ng](https://github.com/orsonteodoro/psdoom-ng/blob/master/extras/psdoom-ng.pdf)
+ * [man psdoom-ng](https://github.com/orsonteodoro/psdoom-ng1/blob/psdoom-ng/psdoom-ng.pdf)
  * [trunk/INSTALL](https://github.com/orsonteodoro/psdoom-ng/blob/1.6.0/trunk/INSTALL)
  * [trunk/CMDLINE](https://github.com/orsonteodoro/psdoom-ng/blob/1.6.0/trunk/CMDLINE)
- * [trunk/README.psdoom-ng](https://github.com/orsonteodoro/psdoom-ng/blob/master/trunk/README.psdoom-ng) 
+ * [trunk/README.psdoom-ng](https://github.com/orsonteodoro/psdoom-ng1/blob/psdoom-ng/README.psdoom-ng) 
 
 Gentoo Linux
 ------------
