@@ -7,9 +7,9 @@ PACKAGE_SHORTDESC="psdoom-ng is a process killer mod based on Chocolate Doom and
 PACKAGE_COPYRIGHT="Copyright (C) 1993-2024"
 PACKAGE_LICENSE="GNU General Public License, version 2"
 PACKAGE_MAINTAINER="Mod: Orson Teodoro, Game engine: Simon Howard"
-PACKAGE_URL="Mod: https://github.com/orsonteodoro/psdoom-ng, Game engine: https://www.chocolate-doom.org/"
+PACKAGE_URL="Mod: https://github.com/orsonteodoro/psdoom-ng1, Game engine: https://www.chocolate-doom.org/"
 PACKAGE_RDNS="org.chocolate_doom"
-PACKAGE_BUGREPORT="Mod: https://github.com/orsonteodoro/psdoom-ng, Game engine: https://github.com/chocolate-doom/chocolate-doom/issues"
+PACKAGE_BUGREPORT="Mod: https://github.com/orsonteodoro/psdoom-ng1, Game engine: https://github.com/chocolate-doom/chocolate-doom/issues"
 
 dnl Check for Emscripten environment so we can set necessary environment variables
 AC_ARG_ENABLE(

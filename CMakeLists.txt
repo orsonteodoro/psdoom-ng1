@@ -18,7 +18,7 @@ set(PACKAGE_TARNAME "psdoom-ng")
 set(PACKAGE_VERSION "${PROJECT_VERSION}")
 set(PACKAGE_STRING "${PROJECT_NAME} ${PROJECT_VERSION}")
 set(PACKAGE_BUGREPORT "Mod: https://github.com/orsonteodoro/psdoom-ng1, Game engine: chocolate-doom-dev-list@chocolate-doom.org")
-set(PACKAGE_URL "Mod: https://github.com/orsonteodoro/psdoom-ng, Game engine: https://www.chocolate-doom.org/")
+set(PACKAGE_URL "Mod: https://github.com/orsonteodoro/psdoom-ng1, Game engine: https://www.chocolate-doom.org/")
 set(PACKAGE_MAINTAINER "Mod: Orson Teodoro, Game engine: Simon Howard")
 
 string(REGEX REPLACE " Doom$" "" PACKAGE_SHORTNAME "${PACKAGE_NAME}")
