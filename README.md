@@ -23,7 +23,7 @@ Linux requirements:
 | FluidSynth    | >= 2.2.0  | Optional              | Run time                | To play music based on MUS or MIDI format                                                                                                            |
 | make          |           | Required              | Build time              | For Autotools build scripts                                                                                                                          |
 | man-db        |           | Optional              | Run time                | To view documentation with `man psdoom-ng`                                                                                                           |
-| ninja         |           | Optional              | Build time              | An alternative for make for the CMake build scripts                                                                                                  |
+| ninja         |           | Optional              | Build time              | An alternative for make for CMake build scripts                                                                                                      |
 | libpng        | >= 1.2.50 | Optional              | Run time                | To save screenshots in PNG format                                                                                                                    |
 | libsamplerate | >= 0.1.8  | Optional              | Run time                | To play sound effects consistently on modern soundcards                                                                                              |
 | libvorbis     | >= 1.3.7  | Optional              | Run time                | To play Ogg Vorbis based music packs                                                                                                                 |
@@ -41,7 +41,7 @@ Compile and usage
 Quick guide with Autotools:
 
  1. Install all dependencies
- 2. `cd trunk`
+ 2. `cd psdoom-ng1-psdoom-ng-<version or commit>`
  3. `./configure --help` #review your prefix, other paths, and extra options
  4. `make`
  5. `make install`
@@ -52,7 +52,7 @@ Quick guide with Autotools:
 Quick guide with CMake:
 
  1. Install all dependencies
- 2. `cd trunk`
+ 2. `cd psdoom-ng1-psdoom-ng-<version or commit>`
  3. `cmake -B build -S . -DCMAKE_INSTALL_PREFIX=/usr -DENABLE_SDL2_MIXER=ON` # For features, see option() in CMakeLists.txt
  4. `cd build`
  4. `ninja -v`
