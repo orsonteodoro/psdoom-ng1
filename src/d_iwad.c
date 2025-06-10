@@ -731,7 +731,7 @@ static void AddSteamDirs(void)
 
 static void BuildIWADDirList(void)
 {
-    char *env;
+    char *env1, *env2;
 
     if (iwad_dirs_built)
     {
@@ -746,17 +746,27 @@ static void BuildIWADDirList(void)
     AddIWADDir(M_DirName(myargv[0]));
 
     // Add DOOMWADDIR if it is in the environment
-    env = M_getenv("DOOMWADDIR");
-    if (env != NULL)
+    env1 = M_getenv("DOOMWADDIR");
+    env2 = M_getenv("PSDOOM_NG_WAD_DIR");
+    if (env1 != NULL)
     {
-        AddIWADDir(env);
+        AddIWADDir(env1);
+    }
+    else if (env2 != NULL)
+    {
+        AddIWADDir(env2);
     }
 
     // Add dirs from DOOMWADPATH:
-    env = M_getenv("DOOMWADPATH");
-    if (env != NULL)
+    env1 = M_getenv("DOOMWADPATH");
+    env2 = M_getenv("PDDOOM_NG_WAD_PATHS");
+    if (env1 != NULL)
     {
-        AddIWADPath(env, "");
+        AddIWADPath(env1, "");
+    }
+    else if (env2 != NULL)
+    {
+        AddIWADPath(env2, "");
     }
 
 #ifdef _WIN32
