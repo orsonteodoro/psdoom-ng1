@@ -49,6 +49,7 @@ add_library(doom STATIC
             p_telept.c
             p_tick.c        p_tick.h
             p_user.c
+            pr_process.c    pr_process.h
             r_bsp.c         r_bsp.h
             r_data.c        r_data.h
                             r_defs.h

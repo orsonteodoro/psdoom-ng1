@@ -1,4 +1,9 @@
-foreach(SUBDIR doom heretic hexen strife setup)
+if(BUILD_ALL_GAMES)
+    set(SUBDIRS doom heretic hexen strife setup)
+else()
+    set(SUBDIRS doom setup)
+endif()
+foreach(SUBDIR ${SUBDIRS})
     add_subdirectory("${SUBDIR}")
 endforeach()
 
@@ -175,49 +180,51 @@ if(MSVC)
                           LINK_FLAGS "/MANIFEST:NO")
 endif()
 
-if(WIN32)
-    add_executable("${PROGRAM_PREFIX}heretic" WIN32 ${SOURCE_FILES_WITH_DEH} "${CMAKE_CURRENT_BINARY_DIR}/heretic-res.rc")
-else()
-    add_executable("${PROGRAM_PREFIX}heretic" ${SOURCE_FILES_WITH_DEH})
-endif()
+if(BUILD_ALL_GAMES)
+    if(WIN32)
+        add_executable("${PROGRAM_PREFIX}heretic" WIN32 ${SOURCE_FILES_WITH_DEH} "${CMAKE_CURRENT_BINARY_DIR}/heretic-res.rc")
+    else()
+        add_executable("${PROGRAM_PREFIX}heretic" ${SOURCE_FILES_WITH_DEH})
+    endif()
 
-target_include_directories("${PROGRAM_PREFIX}heretic" PRIVATE ${GAME_INCLUDE_DIRS})
-target_link_libraries("${PROGRAM_PREFIX}heretic" heretic ${EXTRA_LIBS})
-set_target_properties("${PROGRAM_PREFIX}heretic" PROPERTIES COMPILE_FLAGS "${SDL_FLAGS}")
+    target_include_directories("${PROGRAM_PREFIX}heretic" PRIVATE ${GAME_INCLUDE_DIRS})
+    target_link_libraries("${PROGRAM_PREFIX}heretic" heretic ${EXTRA_LIBS})
+    set_target_properties("${PROGRAM_PREFIX}heretic" PROPERTIES COMPILE_FLAGS "${SDL_FLAGS}")
 
-if(MSVC)
-    set_target_properties("${PROGRAM_PREFIX}heretic" PROPERTIES
-                          LINK_FLAGS "/MANIFEST:NO")
-endif()
+    if(MSVC)
+        set_target_properties("${PROGRAM_PREFIX}heretic" PROPERTIES
+                              LINK_FLAGS "/MANIFEST:NO")
+    endif()
 
-if(WIN32)
-    add_executable("${PROGRAM_PREFIX}hexen" WIN32 ${SOURCE_FILES} "${CMAKE_CURRENT_BINARY_DIR}/hexen-res.rc")
-else()
-    add_executable("${PROGRAM_PREFIX}hexen" ${SOURCE_FILES})
-endif()
+    if(WIN32)
+        add_executable("${PROGRAM_PREFIX}hexen" WIN32 ${SOURCE_FILES} "${CMAKE_CURRENT_BINARY_DIR}/hexen-res.rc")
+    else()
+        add_executable("${PROGRAM_PREFIX}hexen" ${SOURCE_FILES})
+    endif()
 
-target_include_directories("${PROGRAM_PREFIX}hexen" PRIVATE ${GAME_INCLUDE_DIRS})
-target_link_libraries("${PROGRAM_PREFIX}hexen" hexen ${EXTRA_LIBS})
-set_target_properties("${PROGRAM_PREFIX}hexen" PROPERTIES COMPILE_FLAGS "${SDL_FLAGS}")
+    target_include_directories("${PROGRAM_PREFIX}hexen" PRIVATE ${GAME_INCLUDE_DIRS})
+    target_link_libraries("${PROGRAM_PREFIX}hexen" hexen ${EXTRA_LIBS})
+    set_target_properties("${PROGRAM_PREFIX}hexen" PROPERTIES COMPILE_FLAGS "${SDL_FLAGS}")
 
-if(MSVC)
-    set_target_properties("${PROGRAM_PREFIX}hexen" PROPERTIES
-                          LINK_FLAGS "/MANIFEST:NO")
-endif()
+    if(MSVC)
+        set_target_properties("${PROGRAM_PREFIX}hexen" PROPERTIES
+                              LINK_FLAGS "/MANIFEST:NO")
+    endif()
 
-if(WIN32)
-    add_executable("${PROGRAM_PREFIX}strife" WIN32 ${SOURCE_FILES_WITH_DEH} "${CMAKE_CURRENT_BINARY_DIR}/strife-res.rc")
-else()
-    add_executable("${PROGRAM_PREFIX}strife" ${SOURCE_FILES_WITH_DEH})
-endif()
+    if(WIN32)
+        add_executable("${PROGRAM_PREFIX}strife" WIN32 ${SOURCE_FILES_WITH_DEH} "${CMAKE_CURRENT_BINARY_DIR}/strife-res.rc")
+    else()
+        add_executable("${PROGRAM_PREFIX}strife" ${SOURCE_FILES_WITH_DEH})
+    endif()
 
-target_include_directories("${PROGRAM_PREFIX}strife" PRIVATE ${GAME_INCLUDE_DIRS})
-target_link_libraries("${PROGRAM_PREFIX}strife" strife ${EXTRA_LIBS})
-set_target_properties("${PROGRAM_PREFIX}strife" PROPERTIES COMPILE_FLAGS "${SDL_FLAGS}")
+    target_include_directories("${PROGRAM_PREFIX}strife" PRIVATE ${GAME_INCLUDE_DIRS})
+    target_link_libraries("${PROGRAM_PREFIX}strife" strife ${EXTRA_LIBS})
+    set_target_properties("${PROGRAM_PREFIX}strife" PROPERTIES COMPILE_FLAGS "${SDL_FLAGS}")
 
-if(MSVC)
-    set_target_properties("${PROGRAM_PREFIX}strife" PROPERTIES
-                          LINK_FLAGS "/MANIFEST:NO")
+    if(MSVC)
+        set_target_properties("${PROGRAM_PREFIX}strife" PROPERTIES
+                              LINK_FLAGS "/MANIFEST:NO")
+    endif()
 endif()
 
 # Source files needed for chocolate-setup:
@@ -284,3 +291,9 @@ if (DEFINED EMSCRIPTEN)
 else()
     target_link_libraries(mus2mid SDL2::SDL2)
 endif()
+
+set_target_properties(${PROGRAM_PREFIX}doom PROPERTIES OUTPUT_NAME "psdoom-ng")
+
+foreach(SUBDIR ${SUBDIRS})
+    install(TARGETS ${PROGRAM_PREFIX}${SUBDIR} DESTINATION bin)
+endforeach()
